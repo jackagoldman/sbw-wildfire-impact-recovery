@@ -16,10 +16,10 @@ library(cowplot)
 
 
 # Load your data 
-source("/home/goldma34/fire_insect_co-occurence/src/load_data.R")  # Replace with actual script that loads hist_gt90_1 # nolint: line_length_linter.
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/load_data.R")  # Replace with actual script that loads hist_gt90_1 # nolint: line_length_linter.
 
 #load
-source("/home/goldma34/fire_insect_co-occurence/src/find_best_model.R") 
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/find_best_model.R") 
 
 
 # Load Ontario map data
@@ -121,14 +121,14 @@ combined_plot <- plot_grid(
 
 # save each plot inidividually
 ggsave(
-  filename = "/home/goldma34/fire_insect_co-occurence/plots/maps/study_area_unmatched.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/study_area_unmatched.png",
   plot = map1,
   width = 12,
   height = 8,
   dpi = 300
 )
 ggsave(
-  filename = "/home/goldma34/fire_insect_co-occurence/plots/maps/study_area_matched_severity.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/study_area_matched_severity.png",
   plot = map2,
   width = 12,
   height = 8,
@@ -137,7 +137,7 @@ ggsave(
 
 # Save the combined plot    
 ggsave(
-  filename = "/home/goldma34/fire_insect_co-occurence/plots/maps/fig_1_study_area_and_sev_matched.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/fig_1_study_area_and_sev_matched.png",
   plot = combined_plot,
   width = 12,
   height = 8,
@@ -191,7 +191,7 @@ resid_plot_severity <- ggplot(resid_data, aes(x = fitted, y = residuals)) +
 
 #save residuals plot 
 ggsave(
-  filename = "/home/goldma34/fire_insect_co-occurence/plots/supplementary_materials/residuals_fitted_severity.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/supplementary_materials/residuals_fitted_severity.png",
   plot = resid_plot_severity,
   width = 12,
   height = 8,
@@ -232,7 +232,7 @@ spat.resid.sev_plot <- ggplot() +
 
 # save spatial plot of residuals
 ggsave(
-  filename = "/home/goldma34/fire_insect_co-occurence/plots/maps/residuals_map_severity.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/residuals_map_severity.png",
   plot = spat.resid.sev_plot ,
   width = 12,
   height = 8,
@@ -271,7 +271,7 @@ resid_plot_recovery <- ggplot(resid.rec_data, aes(x = fitted, y = residuals)) +
 
 #save residuals plot 
 ggsave(
-  filename = "/home/goldma34/fire_insect_co-occurence/plots/supplementary_materials/residuals_fitted_recovery.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/supplementary_materials/residuals_fitted_recovery.png",
   plot = resid_plot_recovery,
   width = 12,
   height = 8,
@@ -313,7 +313,7 @@ spat.resid.rec_plot <-ggplot() +
 
 # save spatial plot of residuals
 ggsave(
-  filename = "/home/goldma34/fire_insect_co-occurence/plots/maps/residuals_map_recovery.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/residuals_map_recovery.png",
   plot = spat.resid.rec_plot,
   width = 12,
   height = 8,
