@@ -16,7 +16,7 @@
 #' names <- c("0-2 years", "3-5 years", "6-9 years", "10+ years")
 #' plot_treatment_effects(sev_models, names, "Severity", "plots/treat_effects/")
 generate_treatment_effect_plots <- function(model_list, model_names, response_type,
-                                           output_dir = "/home/goldma34/fire_insect_co-occurence/plots/treat_effects/",
+                                           output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/",
                                            combined_plot = TRUE) {
   
   # Load required libraries
@@ -166,8 +166,8 @@ generate_treatment_effect_plots <- function(model_list, model_names, response_ty
 #' This function loads all the subgroup models and generates treatment effect plots.
 generate_all_treatment_effect_plots <- function() {
   # Result directory
-  result_dir <- "/home/goldma34/fire_insect_co-occurence/data/results/"
-  output_dir <- "/home/goldma34/fire_insect_co-occurence/plots/treat_effects/"
+  result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/"
+  output_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/"
   
   # Function to safely read RDS files
   safe_read_rds <- function(file_path) {
@@ -269,7 +269,7 @@ if (interactive()) {
 #' @return List of generated plot objects
 generate_intermediate_treatment_effect_plots <- function(
   response_type = c("Severity", "Recovery"),
-  output_dir = "/home/goldma34/fire_insect_co-occurence/plots/treatment_effects/intermediate/",
+  output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treatment_effects/intermediate/",
   combined_plot = TRUE,
   colors = c("Defoliated" = "#E41A1C", "Non-Defoliated" = "#377EB8")) {
   
@@ -293,10 +293,10 @@ generate_intermediate_treatment_effect_plots <- function(
   
   # Set up paths to model files based on response type
   if (response_type == "Severity") {
-    model_file <- "/home/goldma34/fire_insect_co-occurence/data/results/fit_model_intermediate_severity.RDS"
+    model_file <- "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_severity.RDS"
     model_names <- "3-9 years"
   } else {
-    model_file <- "/home/goldma34/fire_insect_co-occurence/data/results/fit_model_intermediate_recovery.RDS"
+    model_file <- "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_recovery.RDS"
     model_names <- "3-9 years"
   }
   

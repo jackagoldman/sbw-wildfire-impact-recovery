@@ -10,13 +10,13 @@ library(marginaleffects)
 library(MuMIn)
 
 # Source the file with function definitions
-source("/home/goldma34/fire_insect_co-occurence/src/best_model_functions.R")
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/best_model_functions.R")
 
 # Source the file with covariate balance plots
-source("/home/goldma34/fire_insect_co-occurence/src/covariate_balance_plots.R")
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/covariate_balance_plots.R")
 
 # Load your data
-source("/home/goldma34/fire_insect_co-occurence/src/load_data.R")
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/load_data.R")
 
 # Check if data is loaded
 if (!exists("hist_gt90_2_2")) {
@@ -75,9 +75,9 @@ if (!is.null(best_model_sev)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev, "/home/goldma34/fire_insect_co-occurence/data/results/best_model_intermediate_severity.RDS")
-  saveRDS(fit.sev, "/home/goldma34/fire_insect_co-occurence/data/results/fit_model_intermediate_severity.RDS")
-  saveRDS(fit.sev_r2, "/home/goldma34/fire_insect_co-occurence/data/results/fit_model_intermediate_severity_r2.RDS")
+  saveRDS(best_model_sev, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_intermediate_severity.RDS")
+  saveRDS(fit.sev, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_severity.RDS")
+  saveRDS(fit.sev_r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_severity_r2.RDS")
   
   # Calculate treatment effects
   cat("\nCalculating treatment effects...\n")
@@ -89,11 +89,11 @@ if (!is.null(best_model_sev)) {
   print(avg_effects)
   
   # Save treatment effects
-  saveRDS(avg_effects, "/home/goldma34/fire_insect_co-occurence/data/results/treatment_effects_intermediate_severity.RDS")
+  saveRDS(avg_effects, "/home/goldma34/sbw-wildfire-impact-recovery/results/treatment_effects_intermediate_severity.RDS")
   
   # Generate balance plots
   cat("\nGenerating balance plots...\n")
-  plot_dir <- "/home/goldma34/fire_insect_co-occurence/plots/balance/intermediate/"
+  plot_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/intermediate/"
   dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
   
   model_list <- list("3-9 years - Severity" = best_model_sev)
@@ -135,7 +135,7 @@ if (!is.null(best_model_sev)) {
   print(power_plot)
   
   # Save power plot
-  power_dir <- "/home/goldma34/fire_insect_co-occurence/plots/power_analysis/intermediate/"
+  power_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/power_analysis/intermediate/"
   dir.create(power_dir, recursive = TRUE, showWarnings = FALSE)
   ggsave(paste0(power_dir, "power_curve_severity.png"), power_plot, width = 8, height = 6, dpi = 300)
   
@@ -201,9 +201,9 @@ if (!is.null(best_model_rec)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec, "/home/goldma34/fire_insect_co-occurence/data/results/best_model_intermediate_recovery.RDS")
-  saveRDS(fit.rec, "/home/goldma34/fire_insect_co-occurence/data/results/fit_model_intermediate_recovery.RDS")
-  saveRDS(fit.rec_r2, "/home/goldma34/fire_insect_co-occurence/data/results/fit_model_intermediate_recovery_r2.RDS")
+  saveRDS(best_model_rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_intermediate_recovery.RDS")
+  saveRDS(fit.rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_recovery.RDS")
+  saveRDS(fit.rec_r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_recovery_r2.RDS")
   
   # Calculate treatment effects
   cat("\nCalculating treatment effects...\n")
@@ -215,11 +215,11 @@ if (!is.null(best_model_rec)) {
   print(avg_effects_rec)
   
   # Save treatment effects
-  saveRDS(avg_effects_rec, "/home/goldma34/fire_insect_co-occurence/data/results/treatment_effects_intermediate_recovery.RDS")
+  saveRDS(avg_effects_rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/treatment_effects_intermediate_recovery.RDS")
   
   # Generate balance plots
   cat("\nGenerating balance plots...\n")
-  plot_dir <- "/home/goldma34/fire_insect_co-occurence/plots/balance/intermediate/"
+  plot_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/intermediate/"
   dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
   
   model_list <- list("3-9 years - Recovery" = best_model_rec)
@@ -259,7 +259,7 @@ if (!is.null(best_model_rec)) {
   print(power_plot_rec)
   
   # Save power plot
-  power_dir <- "/home/goldma34/fire_insect_co-occurence/plots/power_analysis/intermediate/"
+  power_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/power_analysis/intermediate/"
   dir.create(power_dir, recursive = TRUE, showWarnings = FALSE)
   ggsave(paste0(power_dir, "power_curve_recovery.png"), power_plot_rec, width = 8, height = 6, dpi = 300)
   
@@ -314,9 +314,9 @@ if (!is.null(best_model_rec)) {
 print(summary_df)
 
 # Save summary
-write.csv(summary_df, "/home/goldma34/fire_insect_co-occurence/data/results/intermediate_analysis_summary.csv", row.names = FALSE)
+write.csv(summary_df, "/home/goldma34/sbw-wildfire-impact-recovery/results/intermediate_analysis_summary.csv", row.names = FALSE)
 
-cat("\nAnalysis complete. Results saved to data/results directory.\n")
+cat("\nAnalysis complete. Results saved to results directory.\n")
 
 #============================
 # GENERATE TREATMENT EFFECT PLOTS
@@ -324,7 +324,7 @@ cat("\nAnalysis complete. Results saved to data/results directory.\n")
 cat("\n\n======= GENERATING TREATMENT EFFECT PLOTS =======\n")
 
 # Source dedicated intermediate treatment effects plotting script
-source("/home/goldma34/fire_insect_co-occurence/src/treatment_effect_plots.R")
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/treatment_effect_plots.R")
 generate_all_intermediate_treatment_effect_plots()
 
 #============================
@@ -333,7 +333,7 @@ generate_all_intermediate_treatment_effect_plots()
 cat("\n\n======= GENERATING TREATMENT EFFECT TABLES =======\n")
 
 # Source dedicated intermediate treatment effects export script
-source("/home/goldma34/fire_insect_co-occurence/src/export_treatment_effects.R")
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/export_treatment_effects.R")
 export_intermediate_treatment_effects()
 
-cat("\nAnalysis complete. Results saved to data/results directory.\n")
+cat("\nAnalysis complete. Results saved to results directory.\n")
