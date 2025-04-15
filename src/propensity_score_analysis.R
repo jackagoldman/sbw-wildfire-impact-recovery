@@ -164,6 +164,23 @@ fit_att_sev
 #rsquared
 r.squaredGLMM(fit_sev)
 
+# Create a severity treatment effect data frame with better formatted column names
+sev_treatment_effects <- fit_att_sev %>%
+  rename(
+    Treatment_Effect = estimate,
+    SE = std.error,
+    CI_Lower = conf.low,
+    CI_Upper = conf.high,
+    P_Value = p.value
+  ) %>%
+  mutate(
+    Model = "Severity",
+    .before = 1
+  ) %>%
+  select(Model, Treatment_Effect, SE, CI_Lower, CI_Upper, P_Value, Fires)
+
+# Save this for later when we'll combine with recovery effects
+
 # effects plot
 p.sev_all <- marginaleffects::plot_predictions(fit_sev, condition = c("history"), draw = FALSE) 
 
@@ -346,6 +363,35 @@ fit_att_rec
 #r squared
 r.squaredGLMM(fit_rec_baseline)
 
+# Create a recovery treatment effect data frame with better formatted column names
+rec_treatment_effects <- fit_att_rec %>%
+  rename(
+    Treatment_Effect = estimate,
+    SE = std.error,
+    CI_Lower = conf.low,
+    CI_Upper = conf.high,
+    P_Value = p.value
+  ) %>%
+  mutate(
+    Model = "Recovery",
+    .before = 1
+  ) %>%
+  select(Model, Treatment_Effect, SE, CI_Lower, CI_Upper, P_Value, Fires)
+
+# Combine both treatment effects
+combined_effects <- bind_rows(sev_treatment_effects, rec_treatment_effects)
+
+# Export combined treatment effects to CSV
+write.csv(
+  combined_effects,
+  "/home/goldma34/sbw-wildfire-impact-recovery/results/all_fires/treatment_effects_all_fires.csv",
+  row.names = FALSE
+)
+
+# Print a message confirming export
+cat("Treatment effects exported to results/treatment_effects.csv\n")
+
+
 # effects plot
 p.rec_all <- marginaleffects::plot_predictions(fit_rec_baseline, condition = c("history"), draw = FALSE) 
 
@@ -402,3 +448,22 @@ ggsave(
 )
 # plot extreme scenario
 plot(rec.sensitivity, type = "extreme")
+
+
+# Export R-square values to csv
+# Create dataframe with R-squared values for both models
+r_squared_table <- data.frame(
+  Model = c("Severity", "Recovery"),
+  R2_marginal = c(r.squaredGLMM(fit_sev)[1, "R2m"], r.squaredGLMM(fit_rec_baseline)[1, "R2m"]),
+  R2_conditional = c(r.squaredGLMM(fit_sev)[1, "R2c"], r.squaredGLMM(fit_rec_baseline)[1, "R2c"])
+)
+
+# Export R-squared table to CSV
+write.csv(
+  r_squared_table,
+  "/home/goldma34/sbw-wildfire-impact-recovery/results/all_fires/r_squared_values_all_fires.csv",
+  row.names = FALSE
+)
+
+# Print a message confirming export
+cat("R-squared values exported to results/r_squared_values.csv\n")
