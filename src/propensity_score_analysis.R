@@ -9,7 +9,7 @@ library(viridis)
 library(cowplot)
 library(MatchIt)
 library(sensemakr)
-source("src/find_best_model.R")
+source("src/best_model_functions.R")
 
 
 # Load your data 
@@ -360,8 +360,3 @@ plot(rec.sensitivity)
 
 # plot extreme scenario
 plot(rec.sensitivity, type = "extreme")
-
-
-
-
-
