@@ -77,9 +77,9 @@ if (!is.null(best_model_sev_1)) {
 
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup1_severity.RDS") # nolint: line_length_linter.
-  saveRDS(fit.sev_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup1_severity.RDS") # nolint: line_length_linter.
-  saveRDS(fit.sev_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup1_severity_r2.RDS") # nolint # nolint: line_length_linter.
+  saveRDS(best_model_sev_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup1_severity.RDS") # nolint: line_length_linter.
+  saveRDS(fit.sev_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_severity.RDS") # nolint: line_length_linter.
+  saveRDS(fit.sev_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_severity_r2.RDS") # nolint # nolint: line_length_linter.
 } else {
   cat("No suitable severity model found for subgroup 1. Try different parameters.\n")
 }
@@ -119,8 +119,8 @@ if (!is.null(best_model_rec_1)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup1_recovery.RDS")
-  saveRDS(fit.rec_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup1_recovery.RDS")
+  saveRDS(best_model_rec_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup1_recovery.RDS")
+  saveRDS(fit.rec_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_recovery.RDS")
 } else {
   cat("No suitable recovery model found for subgroup 1. Try different parameters.\n")
 }
@@ -160,8 +160,8 @@ if (!is.null(best_model_sev_2)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup2_severity.RDS")
-  saveRDS(fit.sev_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup2_severity.RDS")
+  saveRDS(best_model_sev_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup2_severity.RDS")
+  saveRDS(fit.sev_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup2_severity.RDS")
 } else {
   cat("No suitable severity model found for subgroup 2. Try different parameters.\n")
 }
@@ -201,8 +201,8 @@ if (!is.null(best_model_rec_2)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup2_recovery.RDS")
-  saveRDS(fit.rec_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup2_recovery.RDS")
+  saveRDS(best_model_rec_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup2_recovery.RDS")
+  saveRDS(fit.rec_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup2_recovery.RDS")
 } else {
   cat("No suitable recovery model found for subgroup 2. Try different parameters.\n")
 }
@@ -242,8 +242,8 @@ if (!is.null(best_model_sev_3)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup3_severity.RDS")
-  saveRDS(fit.sev_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup3_severity.RDS")
+  saveRDS(best_model_sev_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_severity.RDS")
+  saveRDS(fit.sev_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity.RDS")
 } else {
   cat("No suitable severity model found for subgroup 3. Try different parameters.\n")
 }
@@ -283,8 +283,8 @@ if (!is.null(best_model_rec_3)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup3_recovery.RDS")
-  saveRDS(fit.rec_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup3_recovery.RDS")
+  saveRDS(best_model_rec_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_recovery.RDS")
+  saveRDS(fit.rec_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_recovery.RDS")
 } else {
   cat("No suitable recovery model found for subgroup 3. Try different parameters.\n")
 }
@@ -324,8 +324,8 @@ if (!is.null(best_model_sev_4)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup4_severity.RDS")
-  saveRDS(fit.sev_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup4_severity.RDS")
+  saveRDS(best_model_sev_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup4_severity.RDS")
+  saveRDS(fit.sev_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup4_severity.RDS")
 } else {
   cat("No suitable severity model found for subgroup 4. Try different parameters.\n")
 }
@@ -365,8 +365,8 @@ if (!is.null(best_model_rec_4)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup4_recovery.RDS")
-  saveRDS(fit.rec_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup4_recovery.RDS")
+  saveRDS(best_model_rec_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup4_recovery.RDS")
+  saveRDS(fit.rec_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup4_recovery.RDS")
 } else {
   cat("No suitable recovery model found for subgroup 4. Try different parameters.\n")
 }
@@ -393,7 +393,7 @@ subgroups_summary <- data.frame(
 print(subgroups_summary)
 
 # Save a combined summary of all results
-write.csv(subgroups_summary, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroups_summary.csv", row.names = FALSE)
+write.csv(subgroups_summary, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/subgroups_summary.csv", row.names = FALSE)
 
 #Collect model coefficients for all successful models
 model_coefs <- list()
@@ -409,7 +409,7 @@ if (!is.null(best_model_rec_3)) model_coefs[["Subgroup 3 - Recovery"]] <- coef(s
 if (!is.null(best_model_rec_4)) model_coefs[["Subgroup 4 - Recovery"]] <- coef(summary(fit.rec_4))
 
 # Save the coefficient results
-saveRDS(model_coefs, "/home/goldma34/sbw-wildfire-impact-recovery/results/all_model_coefficients.RDS")
+saveRDS(model_coefs, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/all_model_coefficients.RDS")
 
 #============================
 # DETAILED MODEL SUMMARY
@@ -417,7 +417,7 @@ saveRDS(model_coefs, "/home/goldma34/sbw-wildfire-impact-recovery/results/all_mo
 cat("\n\n======= DETAILED MODEL SUMMARY =======\n")
 
 # Define paths and names for models
-result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/"
+result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
 model_paths <- c(
   # Severity models
   paste0(result_dir, "best_model_subgroup1_severity.RDS"),
@@ -689,7 +689,7 @@ cat("\nAnalysis complete. Results saved to results directory.\n")
 cat("\n\n======= GENERATING BALANCE ASSESSMENT PLOTS =======\n")
 
 plot_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/"
-result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/"
+result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
 
 # Create a list of available models
 model_list <- list()
@@ -727,7 +727,7 @@ if (!is.null(best_model_sev_1)) {
   print(fit.sev_1r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.sev_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup1_severity_r2.RDS")
+  saveRDS(fit.sev_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_severity_r2.RDS")
 }
 
 
@@ -739,7 +739,7 @@ if (!is.null(best_model_sev_2)) {
   print(fit.sev_2r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.sev_2r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup2_severity_r2.RDS")
+  saveRDS(fit.sev_2r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup2_severity_r2.RDS")
 }
 
 # Add R-squared GLMM for Subgroup 3 severity
@@ -750,7 +750,7 @@ if (!is.null(best_model_sev_3)) {
   print(fit.sev_3r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.sev_3r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup3_severity_r2.RDS")
+  saveRDS(fit.sev_3r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity_r2.RDS")
 }
 
 # Add R-squared GLMM for Subgroup 4 severity
@@ -761,7 +761,7 @@ if (!is.null(best_model_sev_4)) {
   print(fit.sev_4r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.sev_4r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup4_severity_r2.RDS")
+  saveRDS(fit.sev_4r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup4_severity_r2.RDS")
 }
 
 # Add R-squared GLMM for Subgroup 1 recovery
@@ -772,7 +772,7 @@ if (!is.null(best_model_rec_1)) {
   print(fit.rec_1r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.rec_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup1_recovery_r2.RDS")
+  saveRDS(fit.rec_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_recovery_r2.RDS")
 }
 
 # Add R-squared GLMM for Subgroup 2 recovery
@@ -783,7 +783,7 @@ if (!is.null(best_model_rec_2)) {
   print(fit.rec_2r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.rec_2r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup2_recovery_r2.RDS")
+  saveRDS(fit.rec_2r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup2_recovery_r2.RDS")
 }
 
 # Add R-squared GLMM for Subgroup 3 recovery
@@ -794,7 +794,7 @@ if (!is.null(best_model_rec_3)) {
   print(fit.rec_3r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.rec_3r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup3_recovery_r2.RDS")
+  saveRDS(fit.rec_3r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_recovery_r2.RDS")
 }
 
 # Add R-squared GLMM for Subgroup 4 recovery
@@ -805,7 +805,7 @@ if (!is.null(best_model_rec_4)) {
   print(fit.rec_4r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.rec_4r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup4_recovery_r2.RDS")
+  saveRDS(fit.rec_4r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup4_recovery_r2.RDS")
 }
 
 
@@ -832,8 +832,8 @@ export_all_treatment_effects()
 #Power analysis based on observed effect size
 library(pwr)
 
-fit.sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup3_severity.RDS")
-best_model_sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup3_severity.RDS")
+fit.sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity.RDS")
+best_model_sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_severity.RDS")
 m.data.sev_3 <- match_data(best_model_sev_3)
 
 
@@ -877,8 +877,8 @@ source("/home/goldma34/sbw-wildfire-impact-recovery/src/power_analysis.R")
 
 # Example usage:
 if (!exists("fit.sev_3") || !exists("m.data.sev_3")) {
-  fit.sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_subgroup3_severity.RDS")
-  best_model_sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_subgroup3_severity.RDS")
+  fit.sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity.RDS")
+  best_model_sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_severity.RDS")
   m.data.sev_3 <- match_data(best_model_sev_3)
 }
 
