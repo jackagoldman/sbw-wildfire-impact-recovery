@@ -11,12 +11,12 @@
 #' @examples
 #' # For a severity model:
 #' plots_sev_1 <- generate_balance_plots(best_model_sev_1, "severity", 
-#'                  "/home/goldma34/fire_insect_co-occurence/plots/balance/", 
+#'                  "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/", 
 #'                  "Subgroup 1 (0-2 years)")
 #'                  
 #' # For a recovery model:
 #' plots_rec_1 <- generate_balance_plots(best_model_rec_1, "recovery",
-#'                  "/home/goldma34/fire_insect_co-occurence/plots/balance/",
+#'                  "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/",
 #'                  "Subgroup 1 (0-2 years)")
 generate_balance_plots <- function(match_obj, response_type = "severity", plot_dir, subgroup_name) {
   # Required packages
@@ -192,7 +192,7 @@ generate_balance_plots <- function(match_obj, response_type = "severity", plot_d
 #'   "Subgroup 1 - Recovery" = best_model_rec_1,
 #'   "Subgroup 2 - Severity" = best_model_sev_2
 #' )
-#' all_plots <- generate_all_balance_plots(models, "/home/goldma34/fire_insect_co-occurence/plots/balance/")
+#' all_plots <- generate_all_balance_plots(models, "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/")
 generate_all_balance_plots <- function(model_list, plot_dir) {
   results <- list()
   
@@ -234,8 +234,8 @@ generate_all_balance_plots <- function(model_list, plot_dir) {
 #' @return A nested list of all generated plots
 #' @examples
 #' process_all_balance_plots(
-#'   "/home/goldma34/fire_insect_co-occurence/data/results/", 
-#'   "/home/goldma34/fire_insect_co-occurence/plots/balance/"
+#'   "/home/goldma34/sbw-wildfire-impact-recovery/data/results/", 
+#'   "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/"
 #' )
 process_all_balance_plots <- function(result_dir, plot_dir) {
   # Define file patterns for both response types
