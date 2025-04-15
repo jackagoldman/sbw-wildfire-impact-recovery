@@ -9,6 +9,7 @@ library(viridis)
 library(cowplot)
 library(MatchIt)
 library(sensemakr)
+library(MuMIn)
 source("src/best_model_functions.R")
 
 
@@ -135,7 +136,15 @@ tri_plot <- cobalt::bal.plot(m.out2,
                                labels = c("0" = "Non-Defoliated", "1" = "Defoliated"))+xlab("Fire Weather Index") + ggtitle(NULL) +theme_bw()+ theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
 
 # Arrange the plots in a 2-column layout
-plot_grid(host_plot, isi_plot, dc_plot, dmc_plot, ffmc_plot, bui_plot,fwi_plot, ncol = 1, align = 'v', rel_heights = c(1, 1, 1, 1, 1, 1))
+sev_combined <- plot_grid(host_plot, isi_plot, dc_plot, dmc_plot, ffmc_plot, bui_plot,fwi_plot, ncol = 1, align = 'v', rel_heights = c(1, 1, 1, 1, 1, 1))
+
+# save sev_combined
+ggsave(
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/fig_sev_all_balance.png",
+  plot = sev_combined,
+  width = 14, height = 5 * ceiling(length(sev_combined)/2), # adjust height based on number of plots
+  dpi = 300
+)
 
 
 ## Severity average treatment effect estimate =====================
@@ -168,7 +177,7 @@ plot.p.sev_all <- ggplot(p.sev_all, aes(x = history, y = estimate, color = histo
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
   labs(y = "Burn Severity", x = "Defoliation History", color = "History") +
   scale_x_discrete(labels = c("Defoliated", "Non-Defoliated")) +
-  scale_color_manual(values = c("Defoliated" = "#FF8C00A0", "Non-Defoliated" = "#8B0000A0")) +
+  scale_color_manual(values = c("Defoliated" = "#8B0000A0", "Non-Defoliated" = "#FF8C00A0")) +
   theme_bw()+
   theme(legend.position = "none")
 
@@ -190,6 +199,7 @@ sev.sensitivity <- sensemakr(model = fit_sev,
 #outcome
 summary(sev.sensitivity)
 
+
 #The results suggest that the 'history' variable has a moderate coefficient estimate with a relatively 
 #low standard error, leading to a high t-value and indicating that the effect is statistically significant. 
 #The sensitivity statistics imply that the observed effect is reasonably robust and would 
@@ -197,6 +207,14 @@ summary(sev.sensitivity)
 
 #plot bias contour of point estimate
 plot(sev.sensitivity)
+
+# Convert sensitivity plot to ggplot and save
+ggplot_sev_sensitivity <- plot(sev.sensitivity, type = "contour") + theme_bw()
+ggsave(
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/sensitivity/fig_sev_sensitivity.png",
+  plot = ggplot_sev_sensitivity,
+  width = 8, height = 6, dpi = 300
+)
 
 # plot extreme scenario
 plot(sev.sensitivity, type = "extreme")
@@ -236,9 +254,9 @@ m.data.rec.sf <- st_as_sf(m.data.rec, coords = c("x", "y"), crs = 4326)
 
 
 ## Assess balance for recovery ==============
-v.r <- data.frame(old = c("host_pct", "rbr_w_offset", "mean_temperature", "sum_precipitation_mm"),
+v.r <- data.frame(old = c("host_pct", "rbr_w_offset", "mean_temperature", "sum_precipitation_mm", "mean_tri"),
                 new = c("Host Species Percentage", "burn severity", "post-fire mean temperature", 
-                        "post-fire total precipitation (mm)"))
+                        "post-fire total precipitation (mm)", "mean terrain ruggedness index (m)"))
 
 cobalt::love.plot(m.out.rec, stats = c("mean.diffs"), 
                   threshold = c(m = .25), 
@@ -287,9 +305,26 @@ ppt_plot <- cobalt::bal.plot(m.out.rec,
                                values = c("0" = "#FF8C00A0", "1" = "#8B0000A0"),
                                labels = c("0" = "Non-Defoliated", "1" = "Defoliated"))+xlab("Total Precipitation (mm)") + ggtitle(NULL) +theme_bw()+ theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
 
+tri_plot <- cobalt::bal.plot(m.out.rec, 
+                             var.name = "mean_tri", 
+                             which = "both", 
+                             colors = c("#FF8C00A0", "#8B0000A0"),
+                             sample.names = c("Unmatched", "Matched"))+ scale_fill_manual(
+                               values = c("0" = "#FF8C00A0", "1" = "#8B0000A0"),
+                               labels = c("0" = "Non-Defoliated", "1" = "Defoliated"))+xlab("Mean Terrain Ruggedness Index (m)") + ggtitle(NULL) +theme_bw()+ theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+
 
 # Arrange the plots in a 2-column layout
-plot_grid(host_plot, rbr_plot, temp_plot, ppt_plot, ncol = 1, align = 'v', rel_heights = c(1, 1, 1, 1, 1, 1))
+rec_combined <- plot_grid(host_plot, rbr_plot, temp_plot, ppt_plot, tri_plot, ncol = 1, align = 'v', rel_heights = c(1, 1, 1, 1, 1, 1))
+
+# save sev_combined
+ggsave(
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/fig_rec_all_balance.png",
+  plot = rec_combined,
+  width = 14, height = 5 * ceiling(length(rec_combined)/2), # adjust height based on number of plots
+  dpi = 300
+)
 
 
 ## Recovery average treatment estimate ========
@@ -323,8 +358,8 @@ plot.p.rec_all <- ggplot(p.rec_all, aes(x = history, y = estimate, color = histo
   geom_point(size = 4) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
   labs(y = "Recovery Magnitude (%)", x = "Defoliation History", color = "History") +
-  scale_x_discrete(labels = c("Non-Defoliated", "Defoliated")) +
-  scale_color_manual(values = c("Defoliated" = "#FF8C00A0", "Non-Defoliated" = "#8B0000A0")) +
+  scale_x_discrete(labels = c("Defoliated", "Non-Defoliated")) +
+  scale_color_manual(values = c("Defoliated" = "#8B0000A0", "Non-Defoliated" = "#FF8C00A0")) +
   theme_bw()+
   theme(legend.position = "none")
 
@@ -358,5 +393,12 @@ summary(rec.sensitivity)
 #plot bias contour of point estimate
 plot(rec.sensitivity)
 
+# Convert sensitivity plot to ggplot and save
+ggplot_rec_sensitivity <- plot(rec.sensitivity, type = "contour") + theme_bw()
+ggsave(
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/sensitivity/fig_rec_sensitivity.png",
+  plot = ggplot_rec_sensitivity,
+  width = 8, height = 6, dpi = 300
+)
 # plot extreme scenario
 plot(rec.sensitivity, type = "extreme")
