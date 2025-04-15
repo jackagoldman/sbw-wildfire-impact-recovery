@@ -14,7 +14,7 @@ history <- history %>%
 centroids <- read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_fire_centroids.csv")
 
 # read in recovery
-recovery_defol = read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_recovery_magnitude/on_recovery_magnitude.csv")
+recovery_defol = read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_recovery_magnitude.csv")
 
 recovery_non_defol = read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_no_history_recovery_magnitude.csv")
 
