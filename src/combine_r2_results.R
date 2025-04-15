@@ -2,7 +2,7 @@
 library(dplyr)
 
 # Define results directory
-result_dir <- "/home/goldma34/fire_insect_co-occurence/data/results/"
+result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/"
 
 # Function to safely read RDS files
 safe_read_rds <- function(file_path) {
