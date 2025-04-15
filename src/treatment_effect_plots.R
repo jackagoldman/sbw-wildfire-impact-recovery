@@ -44,12 +44,9 @@ generate_treatment_effect_plots <- function(model_list, model_names, response_ty
     "Recovery Magnitude (%)"
   }
   
-  # Set plot colors based on response type
-  colors <- if(response_type == "Severity") {
-    c("Defoliated" = "#D55E00", "Non-Defoliated" = "#0072B2")  # Orange and Blue
-  } else {
-    c("Defoliated" = "#009E73", "Non-Defoliated" = "#CC79A7")  # Green and Pink
-  }
+  # Set plot colors 
+  colors <- c("Defoliated" = "#8B0000A0", "Non-Defoliated" = "#FF8C00A0")  
+  
   
   # List to store plot objects
   plot_list <- list()
@@ -166,7 +163,7 @@ generate_treatment_effect_plots <- function(model_list, model_names, response_ty
 #' This function loads all the subgroup models and generates treatment effect plots.
 generate_all_treatment_effect_plots <- function() {
   # Result directory
-  result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/"
+  result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
   output_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/"
   
   # Function to safely read RDS files
@@ -269,9 +266,9 @@ if (interactive()) {
 #' @return List of generated plot objects
 generate_intermediate_treatment_effect_plots <- function(
   response_type = c("Severity", "Recovery"),
-  output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treatment_effects/intermediate/",
+  output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/intermediate/",
   combined_plot = TRUE,
-  colors = c("Defoliated" = "#E41A1C", "Non-Defoliated" = "#377EB8")) {
+  colors = c("Defoliated" = "#8B0000A0", "Non-Defoliated" = "#FF8C00A0")) {
   
   # Load required libraries
   library(dplyr)
@@ -293,10 +290,10 @@ generate_intermediate_treatment_effect_plots <- function(
   
   # Set up paths to model files based on response type
   if (response_type == "Severity") {
-    model_file <- "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_severity.RDS"
+    model_file <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_intermediate_severity.RDS"
     model_names <- "3-9 years"
   } else {
-    model_file <- "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_recovery.RDS"
+    model_file <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_intermediate_recovery.RDS"
     model_names <- "3-9 years"
   }
   
