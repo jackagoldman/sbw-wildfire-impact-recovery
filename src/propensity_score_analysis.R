@@ -13,7 +13,7 @@ source("src/find_best_model.R")
 
 
 # Load your data 
-source("/home/goldma34/fire_insect_co-occurence/src/load_data.R")  # Replace with actual script that loads hist_gt90_1
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/load_data.R")  # Replace with actual script that loads hist_gt90_1
 
 # Part 1: SEVERITY ==============================
 
@@ -42,7 +42,7 @@ m.data %>%
 
 
 #save matched data
-write.csv(m.data, "/home/goldma34/fire_insect_co-occurence/data/outputs/on/on_sev_match_data.csv")
+write.csv(m.data, "/home/goldma34/sbw-wildfire-impact-recovery/data/on_sev_match_data.csv")
 
 
 # Convert the data frame to an sf object
@@ -173,7 +173,7 @@ plot.p.sev_all <- ggplot(p.sev_all, aes(x = history, y = estimate, color = histo
   theme(legend.position = "none")
 
 #save plot
-ggsave(plot = plot.p.sev_all, filename = "/home/goldma34/fire_insect_co-occurence/plots/treat_effects/fig_severity_treat_effect_all.png", width = 6, height = 4, dpi = 300)
+ggsave(plot = plot.p.sev_all, filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/fig_severity_treat_effect_all.png", width = 6, height = 4, dpi = 300)
 
 ## Sensitivity analysis for severity #####
 
@@ -229,7 +229,7 @@ m.data.rec %>%
                              history ==0 ~"Non-Defoliated"))
 
 
-write.csv(m.data.rec, "/home/goldma34/fire_insect_co-occurence/data/outputs/on/on_rec_match_data.csv")
+write.csv(m.data.rec, "/home/goldma34/sbw-wildfire-impact-recovery/data/on_rec_match_data.csv")
 
 # Convert the data frame to an sf object
 m.data.rec.sf <- st_as_sf(m.data.rec, coords = c("x", "y"), crs = 4326)
@@ -329,7 +329,7 @@ plot.p.rec_all <- ggplot(p.rec_all, aes(x = history, y = estimate, color = histo
   theme(legend.position = "none")
 
 #save plot
-ggsave(plot = plot.p.rec_all, filename = "/home/goldma34/fire_insect_co-occurence/plots/treat_effects/fig_rec_treat_effect_all.png", width = 6, height = 4, dpi = 300)
+ggsave(plot = plot.p.rec_all, filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/fig_rec_treat_effect_all.png", width = 6, height = 4, dpi = 300)
 
 
 ##  sensitivity analysis for recovery  -----------
