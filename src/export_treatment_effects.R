@@ -14,7 +14,7 @@
 #' names <- c("0-2 years", "3-5 years", "6-9 years", "10+ years")
 #' export_treatment_effects(sev_models, names, "Severity")
 export_treatment_effects <- function(model_list, model_names, response_type,
-                                   output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/data/results/") {
+                                   output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/results/") {
   
   # Load required libraries
   require(dplyr)
