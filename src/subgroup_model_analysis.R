@@ -110,7 +110,7 @@ if (!is.null(best_model_rec_1)) {
   
   # Fit model with matched data - using recovery covariates
   cat("\nFitting linear model...\n")
-  fit.rec_1 <- lm(rbr_w_offset ~ history + host_pct + mean_temperature + sum_precipitation_mm + mean_tri,
+  fit.rec_1 <- lm(recovery ~ history + host_pct + rbr_w_offset+ mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec_1, weights = weights)
   
   # Print model summary
@@ -192,7 +192,7 @@ if (!is.null(best_model_rec_2)) {
   
   # Fit model with matched data - using recovery covariates
   cat("\nFitting linear model...\n")
-  fit.rec_2 <- lm(rbr_w_offset ~ history + host_pct + mean_temperature + sum_precipitation_mm + mean_tri,
+  fit.rec_2 <- lm(recovery ~ history + host_pct + rbr_w_offset+ mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec_2, weights = weights)
   
   # Print model summary
@@ -274,7 +274,7 @@ if (!is.null(best_model_rec_3)) {
   
   # Fit model with matched data - using recovery covariates
   cat("\nFitting linear model...\n")
-  fit.rec_3 <- lm(rbr_w_offset ~ history + host_pct + mean_temperature + sum_precipitation_mm + mean_tri,
+  fit.rec_3 <- lm(recovery ~ history + host_pct + rbr_w_offset+ mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec_3, weights = weights)
   
   # Print model summary
@@ -356,7 +356,7 @@ if (!is.null(best_model_rec_4)) {
   
   # Fit model with matched data - using recovery covariates
   cat("\nFitting linear model...\n")
-  fit.rec_4 <- lm(rbr_w_offset ~ history + host_pct + mean_temperature + sum_precipitation_mm + mean_tri,
+  fit.rec_4 <- lm(recovery ~ history + host_pct + rbr_w_offset+ mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec_4, weights = weights)
   
   # Print model summary
