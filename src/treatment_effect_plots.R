@@ -17,7 +17,8 @@
 #' plot_treatment_effects(sev_models, names, "Severity", "plots/treat_effects/")
 generate_treatment_effect_plots <- function(model_list, model_names, response_type,
                                            output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/",
-                                           combined_plot = TRUE) {
+                                           combined_plot = TRUE,
+                                           all_categories_plot = TRUE) {
   
   # Load required libraries
   require(ggplot2)
@@ -153,6 +154,45 @@ generate_treatment_effect_plots <- function(model_list, model_names, response_ty
     
     # Add to return list
     plot_list[["combined"]] <- p_combined
+  }
+  if (all_categories_plot && nrow(all_predictions) > 0) {
+    # Create plot with all categories on x axis
+    p_all_categories <- ggplot(all_predictions, aes(x = Model, 
+                        y = estimate, 
+                        color = history)) +
+      geom_point(size = 3,
+                position = position_dodge(width = 0.5)) +
+      geom_errorbar(aes(ymin = conf.low, 
+                        ymax = conf.high),
+                        position = position_dodge(width = 0.5),
+                        width = 0.2) +
+      labs(
+        y = y_label, 
+        x = "Defoliation History", 
+        color = "History"
+      ) +
+      scale_color_manual(values = colors) +
+      scale_x_discrete(limits = c("0-2 years","3-5 years","6-9 years", "10+ years")) + 
+      theme_bw() +
+      theme(
+        strip.background = element_rect(fill = "white"),
+        strip.text = element_text(size = 11),
+        legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5, size = 14)
+      )
+
+      # save all categories plot
+      all_categories_filename <- paste0("fig_", tolower(response_type), "_treat_effects_all_categories.png")
+      ggsave(
+        plot = p_all_categories,
+        filename = file.path(output_dir, all_categories_filename),
+        width = 10, 
+        height = 8, 
+        dpi = 300
+      )
+      cat("Saved all categories plot to", file.path(output_dir, all_categories_filename), "\n")
+      # Add to return list    
+      plot_list[["all_categories"]] <- p_all_categories
   }
   
   return(plot_list)
