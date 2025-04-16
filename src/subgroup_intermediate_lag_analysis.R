@@ -326,6 +326,8 @@ cat("\n\n======= GENERATING TREATMENT EFFECT PLOTS =======\n")
 # Source dedicated intermediate treatment effects plotting script
 source("/home/goldma34/sbw-wildfire-impact-recovery/src/treatment_effect_plots.R")
 generate_all_intermediate_treatment_effect_plots()
+generate_all_combined_intermediate_treatment_effect_plots()
+
 
 #============================
 # GENERATE TREATMENT EFFECT TABLES

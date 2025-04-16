@@ -471,6 +471,15 @@ generate_combined_intermediate_treatment_effect_plots <- function(
     }
   }
   
+  # Function to get significance stars
+  get_significance_stars <- function(p_value) {
+    if(is.na(p_value)) return("n.s.")
+    if(p_value > 0.05) return("n.s.") 
+    else if(p_value <= 0.05 & p_value > 0.01) return("*")
+    else if(p_value <= 0.01 & p_value > 0.001) return("**")
+    else return("***")
+  }
+  
   result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
 
   # Validate response type
@@ -505,6 +514,7 @@ generate_combined_intermediate_treatment_effect_plots <- function(
   # Initialize plot list
   plot_list <- list()
   all_predictions <- data.frame()
+  significance_labels <- data.frame()
   
   # Define model groups and model names
   models <- list(int_model, early_model, peak_model)
@@ -519,8 +529,31 @@ generate_combined_intermediate_treatment_effect_plots <- function(
     }
     
     tryCatch({
+      # Get sample size
+      n_size <- nrow(models[[i]]$model)
+      
       # Generate predictions for this model
       preds <- plot_predictions(models[[i]], condition = c("history"), draw = FALSE)
+      
+      # Get treatment effect and p-value
+      treatment_effects <- avg_comparisons(
+        models[[i]], 
+        variables = "history",
+        newdata = subset(models[[i]]$model, history == 1)
+      )
+      
+      # Extract p-value for significance stars
+      p_value <- as.data.frame(treatment_effects)$p.value[1]
+      sig_stars <- get_significance_stars(p_value)
+      
+      # Create significance label data 
+      sig_label <- data.frame(
+        Model = model_names[i],
+        label = paste0(sig_stars, "\n", "n=", n_size),
+        y_pos = max(preds$conf.high) + 0.05 * diff(range(preds$estimate))
+      )
+      
+      significance_labels <- bind_rows(significance_labels, sig_label)
       
       # Add model info
       preds <- preds %>% 
@@ -536,7 +569,7 @@ generate_combined_intermediate_treatment_effect_plots <- function(
         geom_point(size = 4) +
         geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
         labs(
-          title = paste(response_type, "-", model_names[i]),
+          title = paste0(response_type, " - ", model_names[i], " (", sig_stars, ", n=", n_size, ")"),
           y = y_label, 
           x = "Defoliation History", 
           color = "History"
@@ -575,23 +608,45 @@ generate_combined_intermediate_treatment_effect_plots <- function(
   
   # Create combined plot if we have data
   if (combined_plot && nrow(all_predictions) > 0) {
+    # Calculate overall y-range for proper placement of significance labels
+    y_range <- range(c(all_predictions$conf.low, all_predictions$conf.high), na.rm = TRUE)
+    y_buffer <- 0.08 * diff(y_range)
+    
+    # Update y positions for significance labels based on actual data
+    significance_labels <- significance_labels %>%
+      group_by(Model) %>%
+      mutate(
+        y_pos = max(all_predictions$conf.high[all_predictions$Model == Model]) + y_buffer
+      )
+    
     p_combined <- ggplot(all_predictions, 
       aes(x = Model, y = estimate, color = history)) +
       geom_point(size = 3, position = position_dodge(width = 0.5)) +
       geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
                    width = 0.2,
                    position = position_dodge(width = 0.5)) +
+      # Add significance and sample size labels
+      geom_text(
+        data = significance_labels,
+        aes(x = Model, y = y_pos, label = label),
+        color = "black",
+        inherit.aes = FALSE,
+        size = 3.5
+      ) +
       labs(
            y = y_label, 
            x = "Time Window", 
            color = "History") +
       scale_color_manual(values = colors) +
       theme_bw() +
+      # Expand y-axis to make room for significance labels
+      scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) +
       theme(
         strip.background = element_rect(fill = "white"),
         strip.text = element_text(size = 11),
         legend.position = "bottom",
-        plot.title = element_text(hjust = 0.5, size = 14)
+        plot.title = element_text(hjust = 0.5, size = 14),
+        plot.caption = element_text(hjust = 0, size = 9, face = "italic")
       )
     
     # Save combined plot
