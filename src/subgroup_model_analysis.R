@@ -826,16 +826,18 @@ export_all_treatment_effects()
 
 
 #============================
-# pwr analysis
+# power analysis
 #============================
 
 #Power analysis based on observed effect size
 library(pwr)
 
-fit.sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity.RDS")
-best_model_sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_severity.RDS")
-m.data.sev_3 <- match_data(best_model_sev_3)
 
+if (!exists("fit.sev_3") || !exists("m.data.sev_3")) {
+  fit.sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity.RDS")
+  best_model_sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_severity.RDS")
+  m.data.sev_3 <- match_data(best_model_sev_3)
+}
 
 # Extract your observed effect and standard error from your model
 # Example: fit.sev_2 <- lm(rbr_w_offset ~ history + host_pct + ...)
@@ -848,7 +850,7 @@ observed_se <- treatment_coef["Std. Error"]
 d <- observed_effect / sd(m.data.sev_3$rbr_w_offset)
 
 # Calculate power for different sample sizes
-sample_sizes <- seq(20, 300, by = 10)
+sample_sizes <- seq(20, 400, by = 10)
 powers <- sapply(sample_sizes, function(n) {
   pwr.t.test(d = d, n = n/2, sig.level = 0.05, type = "two.sample", alternative = "two.sided")$power
 })
@@ -867,20 +869,24 @@ power_plot <- ggplot(power_data, aes(x = sample_size, y = power)) +
   theme_minimal()
 print(power_plot)
 
+#save power plot for Power based on Observed Effect Size
+ggsave(
+  "/home/goldma34/sbw-wildfire-impact-recovery/plots/power_analysis/subgroup3_severity_mss_power.png",
+ power_plot, 
+ width = 8, 
+ height = 6)
+
 # Find required sample size for power = 0.8
 min_sample_size <- sample_sizes[min(which(powers >= 0.8))]
 cat("Minimum sample size required for 80% power:", min_sample_size, "\n")
 
+#==================================================
+# power analysis for minimum detectable effect size
+#==================================================
 
 #source pwr analysis
 source("/home/goldma34/sbw-wildfire-impact-recovery/src/power_analysis.R")
 
-# Example usage:
-if (!exists("fit.sev_3") || !exists("m.data.sev_3")) {
-  fit.sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity.RDS")
-  best_model_sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_severity.RDS")
-  m.data.sev_3 <- match_data(best_model_sev_3)
-}
 
 # Run analysis with sample sizes from 20 to 300
 result <- min_detectable_effect_size(
@@ -898,7 +904,7 @@ print(result$plot_raw)
 higher_power_mdes <- min_detectable_effect_size(
   fit.sev_3, 
   m.data.sev_3,
-  power_target = 0.9
+  power_target = 0.8
 )
 
 cat("\nWith 90% power, minimum detectable effect size (Cohen's d):", 
