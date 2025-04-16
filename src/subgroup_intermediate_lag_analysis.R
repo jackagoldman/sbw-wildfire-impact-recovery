@@ -75,9 +75,9 @@ if (!is.null(best_model_sev)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_intermediate_severity.RDS")
-  saveRDS(fit.sev, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_severity.RDS")
-  saveRDS(fit.sev_r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_severity_r2.RDS")
+  saveRDS(best_model_sev, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_intermediate_severity.RDS")
+  saveRDS(fit.sev, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_intermediate_severity.RDS")
+  saveRDS(fit.sev_r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_intermediate_severity_r2.RDS")
   
   # Calculate treatment effects
   cat("\nCalculating treatment effects...\n")
@@ -89,7 +89,7 @@ if (!is.null(best_model_sev)) {
   print(avg_effects)
   
   # Save treatment effects
-  saveRDS(avg_effects, "/home/goldma34/sbw-wildfire-impact-recovery/results/treatment_effects_intermediate_severity.RDS")
+  saveRDS(avg_effects, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/treatment_effects_intermediate_severity.RDS")
   
   # Generate balance plots
   cat("\nGenerating balance plots...\n")
@@ -187,7 +187,7 @@ if (!is.null(best_model_rec)) {
   
   # Fit model with matched data - using recovery covariates
   cat("\nFitting linear model...\n")
-  fit.rec <- lm(recovery ~ history + host_pct + mean_temperature + sum_precipitation_mm + mean_tri,
+  fit.rec <- lm(recovery ~ history + host_pct + rbr_w_offset + mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec, weights = weights)
   
   # Print model summary
@@ -201,9 +201,9 @@ if (!is.null(best_model_rec)) {
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/best_model_intermediate_recovery.RDS")
-  saveRDS(fit.rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_recovery.RDS")
-  saveRDS(fit.rec_r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/fit_model_intermediate_recovery_r2.RDS")
+  saveRDS(best_model_rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_intermediate_recovery.RDS")
+  saveRDS(fit.rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_intermediate_recovery.RDS")
+  saveRDS(fit.rec_r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_intermediate_recovery_r2.RDS")
   
   # Calculate treatment effects
   cat("\nCalculating treatment effects...\n")
@@ -215,7 +215,7 @@ if (!is.null(best_model_rec)) {
   print(avg_effects_rec)
   
   # Save treatment effects
-  saveRDS(avg_effects_rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/treatment_effects_intermediate_recovery.RDS")
+  saveRDS(avg_effects_rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/treatment_effects_intermediate_recovery.RDS")
   
   # Generate balance plots
   cat("\nGenerating balance plots...\n")
@@ -314,7 +314,7 @@ if (!is.null(best_model_rec)) {
 print(summary_df)
 
 # Save summary
-write.csv(summary_df, "/home/goldma34/sbw-wildfire-impact-recovery/results/intermediate_analysis_summary.csv", row.names = FALSE)
+write.csv(summary_df, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/intermediate_analysis_summary.csv", row.names = FALSE)
 
 cat("\nAnalysis complete. Results saved to results directory.\n")
 
