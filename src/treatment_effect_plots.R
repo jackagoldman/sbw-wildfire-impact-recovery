@@ -434,3 +434,216 @@ generate_all_intermediate_treatment_effect_plots <- function() {
 if (!interactive()) {
   generate_all_intermediate_treatment_effect_plots()
 }
+
+#'Generate comparison intermediate treatment effects comparison plots
+#' 
+#' This function generates a comparison plot of treatment effects
+#' for intermediate lag (3-9 years) and the 3-5 and 6-9 years subgroup models.
+#' @param response_type Character, either "Severity" or "Recovery"
+#' @param output_dir Directory where plots should be saved
+#' @param combined_plot Logical, whether to create a combined plot
+#' @param colors Vector of colors for the plots
+#'
+#' @return List of generated plot objects
+generate_combined_intermediate_treatment_effect_plots <- function(
+  response_type = c("Severity", "Recovery"),
+  output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/intermediate/",
+  combined_plot = TRUE,
+  colors = c("Defoliated" = "#8B0000A0", "Non-Defoliated" = "#FF8C00A0")) {
+  
+  # Load required libraries
+  library(dplyr)
+  library(ggplot2)
+  library(marginaleffects)
+
+  # Function to safely read RDS files
+  safe_read_rds <- function(file_path) {
+    if (file.exists(file_path)) {
+      tryCatch({
+        readRDS(file_path)
+      }, error = function(e) {
+        cat("Error reading", file_path, ":", e$message, "\n")
+        NULL
+      })
+    } else {
+      cat("File not found:", file_path, "\n")
+      NULL
+    }
+  }
+  
+  result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
+
+  # Validate response type
+  response_type <- match.arg(response_type)
+  
+  # Create output directory if it doesn't exist
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+  
+  # Determine y-axis label based on response type
+  y_label <- if(response_type == "Severity") {
+    "Burn Severity (RBR)"
+  } else {
+    "Recovery (%)"
+  }
+  
+  # Set up paths to model files based on response type
+  if (response_type == "Severity") {
+    int_model_file <- paste0(result_dir, "fit_model_intermediate_severity.RDS")
+    early_model_file <- paste0(result_dir, "fit_model_subgroup2_severity.RDS")
+    peak_model_file <- paste0(result_dir, "fit_model_subgroup3_severity.RDS")
+  } else {
+    int_model_file <- paste0(result_dir, "fit_model_intermediate_recovery.RDS")
+    early_model_file <- paste0(result_dir, "fit_model_subgroup2_recovery.RDS")
+    peak_model_file <- paste0(result_dir, "fit_model_subgroup3_recovery.RDS")
+  }
+  
+  # Load models
+  int_model <- safe_read_rds(int_model_file)
+  early_model <- safe_read_rds(early_model_file)
+  peak_model <- safe_read_rds(peak_model_file)
+  
+  # Initialize plot list
+  plot_list <- list()
+  all_predictions <- data.frame()
+  
+  # Define model groups and model names
+  models <- list(int_model, early_model, peak_model)
+  model_names <- c("Intermediate (3-9 years)", "Early (3-5 years)", "Peak (6-9 years)")
+  
+  # Process each model
+  for (i in 1:length(models)) {
+    # Skip if model is NULL
+    if (is.null(models[[i]])) {
+      cat("Skipping", model_names[i], "- model is NULL\n")
+      next
+    }
+    
+    tryCatch({
+      # Generate predictions for this model
+      preds <- plot_predictions(models[[i]], condition = c("history"), draw = FALSE)
+      
+      # Add model info
+      preds <- preds %>% 
+        mutate(Model = model_names[i]) %>%
+        mutate(history = case_when(history == 1 ~ "Defoliated",
+                                  history == 0 ~ "Non-Defoliated"))
+      
+      # Store for combined plot
+      all_predictions <- bind_rows(all_predictions, preds)
+      
+      # Create individual plot
+      p <- ggplot(preds, aes(x = history, y = estimate, color = history)) +
+        geom_point(size = 4) +
+        geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
+        labs(
+          title = paste(response_type, "-", model_names[i]),
+          y = y_label, 
+          x = "Defoliation History", 
+          color = "History"
+        ) +
+        scale_color_manual(values = colors) +
+        theme_bw() +
+        theme(
+          legend.position = "none",
+          plot.title = element_text(hjust = 0.5, size = 12)
+        )
+      
+      # Store in plot list
+      plot_list[[model_names[i]]] <- p
+      
+      # Save individual plot
+      plot_filename <- paste0("fig_", 
+                             tolower(response_type), 
+                             "_treat_effect_", 
+                             gsub(" ", "_", tolower(gsub("[()]", "", model_names[i]))), 
+                             ".png")
+      
+      ggsave(
+        plot = p,
+        filename = file.path(output_dir, plot_filename),
+        width = 6, 
+        height = 4, 
+        dpi = 300
+      )
+      
+      cat("Saved plot for", model_names[i], "to", file.path(output_dir, plot_filename), "\n")
+      
+    }, error = function(e) {
+      cat("Error creating plot for", model_names[i], ":", e$message, "\n")
+    })
+  }
+  
+  # Create combined plot if we have data
+  if (combined_plot && nrow(all_predictions) > 0) {
+    p_combined <- ggplot(all_predictions, 
+      aes(x = Model, y = estimate, color = history)) +
+      geom_point(size = 3, position = position_dodge(width = 0.5)) +
+      geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
+                   width = 0.2,
+                   position = position_dodge(width = 0.5)) +
+      labs(
+           y = y_label, 
+           x = "Time Window", 
+           color = "History") +
+      scale_color_manual(values = colors) +
+      theme_bw() +
+      theme(
+        strip.background = element_rect(fill = "white"),
+        strip.text = element_text(size = 11),
+        legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5, size = 14)
+      )
+    
+    # Save combined plot
+    combined_filename <- paste0("fig_", tolower(response_type), "_treat_effects_intermediate_comparison.png")
+    ggsave(
+      plot = p_combined,
+      filename = file.path(output_dir, combined_filename),
+      width = 8, 
+      height = 6, 
+      dpi = 300
+    )
+    
+    cat("Saved combined plot to", file.path(output_dir, combined_filename), "\n")
+    
+    # Add to return list
+    plot_list[["combined"]] <- p_combined
+  }
+  
+  # Return the plot list
+  return(plot_list)
+}
+
+#' Generate plots for comparison of intermediate treatment effects
+#'
+#' This function calls generate_combined_intermediate_treatment_effect_plots
+#'
+#' @return NULL
+generate_all_combined_intermediate_treatment_effect_plots <- function() {
+  sev_plots <- tryCatch({
+    generate_combined_intermediate_treatment_effect_plots("Severity")
+  }, error = function(e) {
+    cat("Error generating severity plots:", e$message, "\n")
+    list()
+  })
+  
+  rec_plots <- tryCatch({
+    generate_combined_intermediate_treatment_effect_plots("Recovery")
+  }, error = function(e) {
+    cat("Error generating recovery plots:", e$message, "\n")
+    list()
+  })
+  
+  cat("Treatment effect plot generation complete.\n")
+  
+  # Return both sets of plots
+  return(list(severity = sev_plots, recovery = rec_plots))
+}
+
+# Run the function when this script is sourced (if not being sourced for just the functions)
+if (!interactive()) { 
+  cat("To generate all combined intermediate treatment effect plots, run:\n")
+  cat("generate_all_combined_intermediate_treatment_effect_plots()\n") 
+  } else {
+  generate_all_combined_intermediate_treatment_effect_plots()
+}
