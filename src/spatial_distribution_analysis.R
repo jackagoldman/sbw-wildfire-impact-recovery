@@ -14,18 +14,20 @@ library(rnaturalearthdata)
 library(viridis)
 library(cowplot)
 
+#utils
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/utils.R")
+
 
 # Load your data 
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/load_data.R")  # Replace with actual script that loads hist_gt90_1 # nolint: line_length_linter.
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/load_data.R") 
 
 #load
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/find_best_model.R") 
+source("/home/goldma34/sbw-wildfire-impact-recovery/src/best_model_functions.R") 
 
 
 # Load Ontario map data
 ontario <- ne_states(country = "Canada", returnclass = "sf") %>%
   filter(name == "Ontario")
-
 
 # Create the inset pie chart for m.data.sf
 inset_data1 <- h90.sf %>%
@@ -64,6 +66,7 @@ inset_pie2 <- ggplot(inset_data2, aes(x = "", y = count, fill = factor(history))
         panel.grid = element_blank(),
         legend.position = "none") +
   geom_text(aes(label = count), position = position_stack(vjust = 0.5), size = 3)  # Adjust the size here
+
 # Create the first map with inset
 map1 <- ggplot() +
   geom_sf(data = ontario, fill = "navajowhite1", color = "black") +
@@ -81,6 +84,9 @@ map1 <- ggplot() +
   ) +
   labs(title = "A)") +
   annotation_custom(ggplotGrob(inset_pie1), xmin = -78, xmax = -73, ymin = 42, ymax = 52)
+
+  #save rds
+saveRDS(map1, "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/study_area_unmatched_map.rds")
 
 # Create the second map with inset using m.data.sf2
 map2 <- ggplot() +
@@ -100,7 +106,48 @@ map2 <- ggplot() +
   labs(title = "B)") +
   annotation_custom(ggplotGrob(inset_pie2), xmin = -78, xmax = -73, ymin = 42, ymax = 52)
 
+#save rds
+saveRDS(map2, "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/study_area_severity_map.rds")
 
+# Create the inset pie chart for m.data.rec_sf
+inset_data3 <- m.data.rec_sf %>%
+  group_by(history) %>%
+  summarise(count = n())
+
+inset_pie3 <- ggplot(inset_data3, aes(x = "", y = count, fill = factor(history))) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  scale_fill_manual(values = c("0" = "#FF8C00A0", "1" = "#8B0000A0"), 
+                    name = NULL, 
+                    labels = c("0" = "Non-Defoliated", "1" = "Defoliated")) +
+  theme_void() +
+  labs(x = NULL, y = NULL) +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "none") +
+  geom_text(aes(label = count), position = position_stack(vjust = 0.5), size = 3)  # Adjust the size here
+
+# recovery map using m.data.rec_sf
+map3 <- ggplot() +
+  geom_sf(data = ontario, fill = "navajowhite1", color = "black") +
+  geom_sf(data = m.data.rec_sf, aes(color = factor(history)), size = 1) +
+  scale_color_manual(values = c("0" = "#FF8C00A0", "1" = "#8B0000A0"), 
+                     name = NULL, 
+                     labels = c("0" = "Non-Defoliated", "1" = "Defoliated"),
+                     guide = guide_legend(title.position = "top", title.hjust = 0.4)) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0, size = 16),
+    legend.position = "top",
+    legend.direction = "horizontal",
+    legend.text = element_text(size = 10)
+  ) +
+  labs(title = "C)") +
+  annotation_custom(ggplotGrob(inset_pie3), xmin = -78, xmax = -73, ymin = 42, ymax = 52)
+
+# save rds
+saveRDS(map3, "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/study_area_recovery_map.rds")
 
 # Extract the legend from one of the maps
 legend <- cowplot::get_legend(map1)
@@ -137,7 +184,7 @@ ggsave(
 
 # Save the combined plot    
 ggsave(
-  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/fig_1_study_area_and_sev_matched.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/study_area_and_sev_matched.png",
   plot = combined_plot,
   width = 12,
   height = 8,
@@ -156,11 +203,9 @@ defol_only_rec <- subset(history_gt90, history == 1)
 # Part 1: SEVERITY ======================
 ########################################
 # Define the model formula
-formula.sev <- rbr_w_offset ~host_pct +  Cumulative_Years_Defol:window_opp + isi_90 + 
+formula.sev <- rbr_w_offset ~host_pct + Cumulative_Years_Defol:window_opp + isi_90 + 
   dc_90 + dmc_90 + ffmc_90 + bui_90+ fwi_90 + mean_tri+  x + y 
 
-# Fit the model using nlme with spatial correlation, where correlation decreases with distance
-# gls
 # Fit the model using nlme with spatial correlation, where correlation decreases with distance
 model_gls <- gls(formula.sev,
                  correlation = corGaus(form = ~ x + y), 
@@ -191,7 +236,7 @@ resid_plot_severity <- ggplot(resid_data, aes(x = fitted, y = residuals)) +
 
 #save residuals plot 
 ggsave(
-  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/supplementary_materials/residuals_fitted_severity.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/spatial_analysis/residuals_fitted_severity.png",
   plot = resid_plot_severity,
   width = 12,
   height = 8,
@@ -199,10 +244,13 @@ ggsave(
 )
 
 # Display the model summary
-summary(model_gls)
-
+mod.sum_sev <- summary(model_gls)
+print(mod.sum_sev)
+saveRDS(mod.sum_sev, "/home/goldma34/sbw-wildfire-impact-recovery/results/spatial_analysis/model_summary_severity.rds")
 # r2
-rsquared.gls(model_gls, formula)
+r2.sev <- rsquared.gls(model_gls, formula.sev)
+print(r2.sev)
+saveRDS(r2.sev, "/home/goldma34/sbw-wildfire-impact-recovery/results/spatial_analysis/r2_severity.rds")
 
 # extract residuals
 defol_only_sev$residuals_gls <- residuals(model_gls)
@@ -228,6 +276,9 @@ spat.resid.sev_plot <- ggplot() +
   scale_color_gradient2(low = "#88CCEEA0", mid = "white", high = "#8B0000A0", midpoint = 0) +
   labs(title = NULL, x = "Longitude", y = "Latitude", color = "Residuals") +
   theme_bw()
+
+#save rds
+saveRDS(spat.resid.sev_plot, "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/residuals_map_severity.rds")
 
 
 # save spatial plot of residuals
@@ -269,9 +320,10 @@ resid_plot_recovery <- ggplot(resid.rec_data, aes(x = fitted, y = residuals)) +
   theme_bw()
 
 
+
 #save residuals plot 
 ggsave(
-  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/supplementary_materials/residuals_fitted_recovery.png",
+  filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/spatial_analysis/residuals_fitted_recovery.png",
   plot = resid_plot_recovery,
   width = 12,
   height = 8,
@@ -279,10 +331,13 @@ ggsave(
 )
 
 # Display the model summary
-summary(model_gls_rec)
-
+mod.sum_rec <-summary(model_gls_rec)
+print(mod.sum_rec)
+saveRDS(mod.sum_rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/spatial_analysis/model_summary_recovery.rds")
 # r2
-rsquared.gls(model_gls_rec, formula)
+r2.rec <-rsquared.gls(model_gls_rec, formula.rec)
+print(r2.rec)
+saveRDS(r2.rec, "/home/goldma34/sbw-wildfire-impact-recovery/results/spatial_analysis/r2_recovery.rds")
 
 # extract residuals
 defol_only_rec$residuals_gls_rec <- residuals(model_gls_rec)
@@ -293,6 +348,7 @@ colnames(defol_only_rec) <- make.names(colnames(defol_only_rec))
 coordinates(defol_only_rec) <- ~ x + y
 
 # Compute the variogram
+
 variogram_gls_rec <- variogram(residuals_gls_rec ~ 1, data = defol_only_rec)
 
 # Plot the variogram
@@ -309,7 +365,8 @@ spat.resid.rec_plot <-ggplot() +
   labs(title = NULL, x = "Longitude", y = "Latitude", color = "Residuals") +
   theme_bw()
 
-
+#save rds
+saveRDS(spat.resid.rec_plot, "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/residuals_map_recovery.rds")
 
 # save spatial plot of residuals
 ggsave(
@@ -319,3 +376,7 @@ ggsave(
   height = 8,
   dpi = 300
 )
+
+
+# summary tables
+export_gls_coefficient_tables(model_gls, model_gls_rec)
