@@ -11,6 +11,7 @@ library(MatchIt)
 library(sensemakr)
 library(MuMIn)
 source("src/best_model_functions.R")
+source("src/utils.R")
 
 
 # Load your data 
@@ -179,6 +180,10 @@ sev_treatment_effects <- fit_att_sev %>%
   ) %>%
   select(Model, Treatment_Effect, SE, CI_Lower, CI_Upper, P_Value, Fires)
 
+# save rds
+saveRDS(sev_treatment_effects, "/home/goldma34/sbw-wildfire-impact-recovery/results/all_fires/treatment_effects_sev.rds")
+
+
 # Save this for later when we'll combine with recovery effects
 
 # effects plot
@@ -189,6 +194,10 @@ p.sev_all<- p.sev_all %>%
   mutate(history = case_when(history == 1 ~ "Defoliated",
                              history == 0 ~ "Non-Defoliated"))
 
+# Get max y value for positioning
+sev_y_max <- max(p.sev_all$conf.high) * 1.1
+
+# Create base plot
 plot.p.sev_all <- ggplot(p.sev_all, aes(x = history, y = estimate, color = history)) +
   geom_point(size = 4) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
@@ -198,7 +207,13 @@ plot.p.sev_all <- ggplot(p.sev_all, aes(x = history, y = estimate, color = histo
   theme_bw()+
   theme(legend.position = "none")
 
-#save plot
+# Add significance annotation
+plot.p.sev_all <- add_significance_annotation(plot.p.sev_all, fit_att_sev, y_position = sev_y_max)
+
+# save rds
+saveRDS(plot.p.sev_all, "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/fig_sev_treat_effect_all.rds")
+
+# Save plot
 ggsave(plot = plot.p.sev_all, filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/fig_severity_treat_effect_all.png", width = 6, height = 4, dpi = 300)
 
 ## Sensitivity analysis for severity #####
@@ -378,6 +393,9 @@ rec_treatment_effects <- fit_att_rec %>%
   ) %>%
   select(Model, Treatment_Effect, SE, CI_Lower, CI_Upper, P_Value, Fires)
 
+#save rds
+saveRDS(rec_treatment_effects, "/home/goldma34/sbw-wildfire-impact-recovery/results/all_fires/treatment_effects_rec.rds")
+
 # Combine both treatment effects
 combined_effects <- bind_rows(sev_treatment_effects, rec_treatment_effects)
 
@@ -400,6 +418,10 @@ p.rec_all <- p.rec_all %>%
   mutate(history = case_when(history == 1 ~ "Defoliated",
                              history == 0 ~ "Non-Defoliated"))
 
+# Get max y value for positioning
+rec_y_max <- max(p.rec_all$conf.high) * 1.1
+
+# Create base plot
 plot.p.rec_all <- ggplot(p.rec_all, aes(x = history, y = estimate, color = history)) +
   geom_point(size = 4) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
@@ -409,7 +431,14 @@ plot.p.rec_all <- ggplot(p.rec_all, aes(x = history, y = estimate, color = histo
   theme_bw()+
   theme(legend.position = "none")
 
-#save plot
+# Add significance annotation
+plot.p.rec_all <- add_significance_annotation(plot.p.rec_all, fit_att_rec, y_position = rec_y_max)
+
+#save rds
+saveRDS(plot.p.rec_all, "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/fig_rec_treat_effect_all.rds")
+
+
+# Save plot
 ggsave(plot = plot.p.rec_all, filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/treat_effects/fig_rec_treat_effect_all.png", width = 6, height = 4, dpi = 300)
 
 
