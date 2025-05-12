@@ -96,16 +96,17 @@ map2 <- ggplot() +
                      name = NULL, 
                      labels = c("0" = "Non-Defoliated", "1" = "Defoliated"),
                      guide = guide_legend(title.position = "top", title.hjust = 0.4)) +
-  theme_void() +
+  theme_minimal() +
   theme(
-    plot.title = element_text(hjust = 0, size = 16),
-    legend.position = "top",
+    plot.title = element_text(hjust = 0, size = 0),
+    legend.position = "bottom",
     legend.direction = "horizontal",
     legend.text = element_text(size = 10)
   ) +
   labs(title = "B)") +
   annotation_custom(ggplotGrob(inset_pie2), xmin = -78, xmax = -73, ymin = 42, ymax = 52)
 
+map2
 #save rds
 saveRDS(map2, "/home/goldma34/sbw-wildfire-impact-recovery/plots/maps/study_area_severity_map.rds")
 
