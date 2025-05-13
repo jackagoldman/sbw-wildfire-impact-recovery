@@ -378,278 +378,196 @@ trim_y_axis <- function(plot, buffer=50, buffer_is_percent=FALSE, extract_from_d
 
 
 
-
-
-
-
-#' Create a balanced publication-ready patchwork layout
-#'
-#' This function takes multiple plots and arranges them in a balanced layout
-#' with consistent sizes and proper cropping.
-#'
-#' @param left_plot The plot for the left panel
-#' @param top_right_plot The plot for the top right panel
-#' @param bottom_right_plot The plot for the bottom right panel
-#' @param width_ratio Ratio of left to right panel widths
-#' @param height_ratio Ratio of top to bottom heights in right panel
-#' @param tags Vector of plot tags (e.g., c("a", "b", "c"))
-#' @param tag_size Size of the tags
-#'
-#' @return A patchwork layout with properly sized plots
-
-# Add a function to directly modify the map plot with proper tag placement
-add_direct_tag <- function(plot, tag, tag_size = 14) {
-  # Get the ggplot grob
-  g <- ggplotGrob(plot)
-  
-  # Create a text grob for the tag
-  tag_grob <- grid::textGrob(
-    tag,
-    x = grid::unit(0.02, "npc"), 
-    y = grid::unit(0.98, "npc"),
-    just = c("left", "top"),
-    gp = grid::gpar(fontsize = tag_size, fontface = "bold")
-  )
-  
-  # Add the tag as annotation to the plot
-  g <- gtable::gtable_add_grob(
-    g, tag_grob,
-    t = 2, l = 3  # Place in panel area, not in margins
-  )
-  
-  # Convert back to a ggplot-like object that can be used with patchwork
-  class(g) <- c("gtable", "gTree", "grob", "gDesc")
-  g
+# Function to safely write CSV files
+safe_write_csv <- function(data, filepath) {
+  if (!file.exists(filepath)) {
+    # Create directory if it doesn't exist
+    dir_path <- dirname(filepath)
+    if (!dir.exists(dir_path)) {
+      dir.create(dir_path, recursive = TRUE)
+    }
+    
+    # Write the file
+    write.csv(data, filepath)
+    cat(sprintf("File created: %s\n", filepath))
+  } else {
+    cat(sprintf("File already exists (skipping): %s\n", filepath))
+  }
 }
 
-# Update the create_balanced_layout function
-create_balanced_layout <- function(
-  left_plot, 
-  top_right_plot, 
-  bottom_right_plot,
-  width_ratio = c(1.5, 1),
-  height_ratio = c(2, 1),  
-  tags = c("a", "b", "c"),
-  tag_size = 14
-) {
-  # Remove titles
-  if (exists("remove_title")) {
-    left_plot <- remove_title(left_plot)
-    top_right_plot <- remove_title(top_right_plot)
-    bottom_right_plot <- remove_title(bottom_right_plot)
+# Function to safely write RDS files
+safe_write_rds <- function(data, filepath) {
+  if (!file.exists(filepath)) {
+    # Create directory if it doesn't exist
+    dir_path <- dirname(filepath)
+    if (!dir.exists(dir_path)) {
+      dir.create(dir_path, recursive = TRUE)
+    }
+    
+    # Write the file
+    saveRDS(data, filepath)
+    cat(sprintf("File created: %s\n", filepath))
+  } else {
+    cat(sprintf("File already exists (skipping): %s\n", filepath))
   }
-  
-  # Trim y-axis of bottom plot
-  if (exists("trim_y_axis")) {
-    bottom_right_plot <- trim_y_axis(bottom_right_plot, buffer=0.15, buffer_is_percent=TRUE)
-  }
-  
-  # Adjust aspect ratios
-  bottom_right_plot <- bottom_right_plot + 
-    theme(aspect.ratio = 0.7)
-  
-  left_plot <- left_plot + 
-    theme(
-      aspect.ratio = 1,
-      plot.margin = margin(0, 0, 0, 0),
-      panel.spacing = unit(0, "lines"),
-      panel.border = element_blank(),
-      # Remove the default tag
-      plot.tag = element_blank()
-    )
-  
-  # FOR LEFT PLOT: Replace with direct tag version
-  left_plot_tagged <- add_direct_tag(left_plot, tags[1], tag_size)
-  
-  # Common theme for right plots
-  common_theme <- theme(
-    plot.tag = element_text(size = tag_size, face = "bold"),
-    plot.tag.position = c(0.02, 0.98),
-    plot.margin = margin(0, 0, 0, 0)
-  )
-  
-  # Apply tags to right plots
-  top_right_plot <- top_right_plot + labs(tag = tags[2]) + common_theme
-  bottom_right_plot <- bottom_right_plot + labs(tag = tags[3]) + common_theme
-  
-  # Create the layout - USE the tagged version of left plot
-  layout <- (
-    left_plot_tagged | (top_right_plot / bottom_right_plot)
-  ) + 
-    plot_layout(
-      widths = width_ratio,
-      guides = "collect"
-    ) &
-    theme(
-      plot.margin = margin(0, 0, 0, 0),
-      plot.background = element_rect(fill = "white", color = NA)
-    )
-  
-  layout <- layout + 
-    plot_layout(guides = "collect") +
-    plot_annotation(theme = theme(plot.margin = margin(0,0,0,0)))
-  
-  return(layout)
 }
 
 
-# Simple, robust version of create_balanced_layout
-create_balanced_layout_simple <- function(
-  left_plot, 
-  top_right_plot, 
-  bottom_right_plot,
-  width_ratio = c(1.5, 1),
-  height_ratio = c(1, 1),  # Changed to equal heights by default
-  tags = c("a", "b", "c"),
-  tag_size = 14
-) {
-  # Add tags directly to the plots
-  left_plot <- left_plot + 
-    labs(tag = tags[1]) + 
+
+# publication plot main psm results
+publication_panel_all_fires <- function(study_area, treatment_effects, residuals_map, outcome_variable) {
+  output_dir <- "./plots/maps/panels/" 
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  if (outcome_variable == "severity") {
+    output_file <- paste0(output_dir, "fig_", outcome_variable, "_panel_all_fires.png")          
+  } else if (outcome_variable == "recovery") {
+    output_file <- paste0(output_dir, "fig_", outcome_variable, "_panel_all_fires.png")          
+  } 
+
+  study_area_mod <- study_area + 
+  theme(
+    axis.text = element_text(size = 14),
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    legend.text = element_text(size = 16),
+    legend.margin = margin(t = 10, r = 0, b = 0, l = 0),
+    plot.margin = margin(0, 0, 0, 0),  # Zero margin on all sides
+    plot.tag = element_text(size = 14, face = "bold"),
+    plot.tag.position = c(0.08, 0.98)  # Position tag further to the right
+  ) + guides(colour = guide_legend(override.aes = list(size=10)))
+
+  treatment_effects_mod <- treatment_effects +
     theme(
-      plot.tag = element_text(size = tag_size, face = "bold"),
-      plot.tag.position = c(0.02, 0.98),
-      plot.margin = margin(2, 2, 2, 2),
-      aspect.ratio = 1  # Set aspect ratio for left plot
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      plot.margin = margin(0, 0, 0, 0),  # Zero margin on all sides
+      plot.tag = element_text(size = 14, face = "bold"),
+      plot.tag.position = c(0.08, 0.98)  # Position tag further to the right
     )
-  
-  # Extract the plot dimensions of bottom_right_plot to use as reference
-  bottom_plot_build <- ggplot_build(bottom_right_plot)
-  
-  # Common theme for right plots to ensure consistent height and width
-  right_theme <- theme(
-    plot.tag = element_text(size = tag_size, face = "bold"),
-    plot.tag.position = c(0.02, 0.98),
-    plot.margin = margin(2, 2, 2, 2),
-    # Remove aspect ratio setting to let patchwork control sizing
-    aspect.ratio = NULL
-  )
-  
-  # Apply theme to bottom right plot first (our reference)
-  bottom_right_plot <- bottom_right_plot + 
-    labs(tag = tags[3]) + 
-    right_theme
-  
-  # Apply theme to top right plot, using bottom right as reference
-  top_right_plot <- top_right_plot + 
-    labs(tag = tags[2]) + 
-    right_theme
-  
-  # Create the right panel with equal heights
-  # Force same heights by using height_ratio = c(1, 1)
-  right_panel <- (top_right_plot / bottom_right_plot) + 
+  if (outcome_variable == "severity") {
+    treatment_effects_mod <- treatment_effects_mod + labs(y = "Median Burn Severity")
+  } else if (outcome_variable == "recovery") {
+    treatment_effects_mod <- treatment_effects_mod + labs(y = "Recovery Magnitude %")
+  }
+
+  if (outcome_variable == "severity"){
+  residuals_mod <- residuals_map + 
+      theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.position = "right",
+      legend.key.size = unit(1.5, "cm"),  # Increase overall key size
+      legend.key.height = unit(1.2, "cm"), # Set specific height
+      legend.key.width = unit(1.5, "cm"),  # Set specific width
+      legend.margin = margin(t = 0, r = 0, b = 0, l = 5),
+      legend.box.margin = margin(0, 0, 0, 10),  # Add space around legend box
+      legend.text = element_text(size = 16),  # Increase text size
+      plot.margin = margin(0, 0, 0, 0),  # Zero margin on all sides
+      plot.tag = element_text(size = 14, face = "bold"),
+      plot.tag.position = c(0.08, 0.98)  # Position tag further to the right
+    ) + 
+    guides(
+      # For color legend (adjust based on your aesthetic mappings)
+      color = guide_colourbar(
+        barwidth = unit(1, "cm"),
+        barheight = unit(5, "cm"),
+        title.position = "top",
+        title.hjust = 0.5,
+        label.position = "right",
+        label.hjust = 0.5,
+      ),
+      # For fill legend if present
+      fill = guide_legend(
+        override.aes = list(size = 8),
+        keywidth = unit(2, "cm"),
+        keyheight = unit(1, "cm")
+      ),
+      # For other aesthetics if present
+      size = guide_legend(keywidth = unit(2, "cm"), keyheight = unit(1, "cm"))
+    ) +
+    # Apply theme to all guides
+    theme(
+      legend.title = element_text(size = 15, face = "italic"),
+      legend.spacing.y = unit(0.5, "cm")  # Add vertical spacing between legend items
+    ) } else if (outcome_variable == "recovery") {
+      residuals_mod <- residuals_map + 
+      scale_color_gradient2(low = "#88CCEEA0", 
+        mid = "white", high = "#8B0000A0", 
+        midpoint = 50) +
+        theme(
+          axis.title = element_text(size = 16),
+          axis.text = element_text(size = 14),
+          legend.position = "right",
+          legend.key.size = unit(1.5, "cm"),  # Increase overall key size
+          legend.key.height = unit(1.2, "cm"), # Set specific height
+          legend.key.width = unit(1.5, "cm"),  # Set specific width
+          legend.margin = margin(t = 0, r = 0, b = 0, l = 5),
+          legend.box.margin = margin(0, 0, 0, 10),  # Add space around legend box
+          legend.text = element_text(size = 16),  # Increase text size
+          plot.margin = margin(0, 0, 0, 0),  # Zero margin on all sides
+          plot.tag = element_text(size = 14, face = "bold"),
+          plot.tag.position = c(0.08, 0.98)  # Position tag further to the right
+        ) + 
+        guides(
+          # For color legend (adjust based on your aesthetic mappings)
+          color = guide_colourbar(
+            barwidth = unit(1, "cm"),
+            barheight = unit(5, "cm"),
+            title.position = "top",
+            title.hjust = 0.5,
+            label.position = "right",
+            label.hjust = 0.5,
+          ),
+          # For fill legend if present
+          fill = guide_legend(
+            override.aes = list(size = 8),
+            keywidth = unit(2, "cm"),
+            keyheight = unit(1, "cm")
+          ),
+          # For other aesthetics if present
+          size = guide_legend(keywidth = unit(2, "cm"), keyheight = unit(1, "cm"))
+        ) +
+        # Apply theme to all guides
+        theme(
+          legend.title = element_text(size = 15, face = "italic"),
+          legend.spacing.y = unit(0.5, "cm")  # Add vertical spacing between legend items
+        ) 
+    }
+
+
+    
+
+
+
+  # Build layout with tags already positioned
+  bottom_row <- treatment_effects_mod + residuals_mod + 
     plot_layout(
-      heights = c(1, 1),  # Force equal heights
-      guides = "collect"
+      guides = "keep",
+      widths = c(1, 1.3)
     ) &
     theme(
       plot.margin = margin(0, 0, 0, 0),
-      # Ensure no spacing between panels
       panel.spacing = unit(0, "pt")
     )
-  
-  # Combine left and right panels with the specified width ratio
-  layout <- (left_plot | right_panel) + 
+
+  tight_layout <- study_area_mod / bottom_row +
     plot_layout(
-      widths = width_ratio,
-      guides = "collect"
+      heights = c(2, 1),
+      guides = "keep"
     ) &
     theme(
-      plot.margin = margin(0, 0, 0, 0)
-    )
-  
-  return(layout)
-}
-
-#' Crop White Space from Plots
-#' 
-#' This function crops white space from saved plots using ImageMagick's `convert` command.
-#' It trims excess white space and adds a small border around the image.
-#' 
-#' @param input_path Path to the input image file
-#' @param output_path Path to save the cropped image (default: same as input)
-#' @param trim Logical, whether to trim excess white space (default: TRUE)
-#' @param border Numeric, size of the border to add (default: 5)
-#' 
-#' @return NULL
-#' @examples
-#' # crop_plot("path/to/input.png", "path/to/output.png", trim = TRUE, border = 5)
-#' 
-crop_plot <- function(input_path, output_path = NULL, trim = TRUE, border = 5) {
-  # If no output path provided, use the input path
-  if (is.null(output_path)) {
-    output_path <- input_path
-  }
-  
-  # Define system command for ImageMagick's convert tool
-  if (trim) {
-    # Trim excess white space and add a small border
-    cmd <- paste0(
-      "convert ", 
-      input_path, 
-      " -trim +repage -bordercolor white -border ", border, 
-      " ", 
-      output_path
-    )
-  } else {
-    # Just add a border without trimming
-    cmd <- paste0(
-      "convert ", 
-      input_path, 
-      " -bordercolor white -border ", border, 
-      " ", 
-      output_path
-    )
-  }
-  
-  # Execute the command
-  system_result <- system(cmd)
-  
-  # Check if successful
-  if (system_result == 0) {
-    cat("Successfully cropped and saved to", output_path, "\n")
-  } else {
-    warning("Failed to crop image. Is ImageMagick installed?")
-  }
-}
-
-#' Save Layout with Cropping
-#' 
-#' This function saves a ggplot layout to a file and optionally crops it using ImageMagick.
-#' 
-#' @param layout The ggplot layout to save
-#' @param filename The name of the output file
-#' @param width Width of the output file in inches
-#' @param height Height of the output file in inches
-#' @param dpi Resolution in dots per inch
-#'  @param crop Logical, whether to crop the image (default: TRUE)
-#' @param border Numeric, size of the border to add (default: 5)
-#'  
-#' @return NULL
-#' @examples
-#' # save_layout_cropped(my_layout, "my_plot.png", width = 10, height = 7, dpi = 300)
-#'
-save_layout_cropped <- function(
-  layout, 
-  filename, 
-  width = 10, 
-  height = 7, 
-  dpi = 300,
-  crop = TRUE,
-  border = 5
-) {
-   # Save the layout
-  ggsave(
-    filename = filename,
-    plot = layout,
-    width = width,
-    height = height,
-    dpi = dpi,
-    bg = "white"
-  )
-  
-  # Crop if requested
-  if (crop) {
-    crop_plot(filename, border = border)
-  }
+      plot.margin = margin(0, 0, 0, 0),
+      panel.spacing = unit(0, "cm"),
+      panel.spacing.y = unit(-0.5, "lines")  # Negative value to remove white space
+    ) &
+    plot_annotation(tag_levels = 'A', tag_suffix = ")")
+          
+                              
+    print(tight_layout)
+    ggsave(output_file, plot = tight_layout, width = 12, height = 10, dpi = 300)
+    cat(sprintf("Figure saved to: %s\n", output_file))
+    return(tight_layout)                          
+                              
 }
