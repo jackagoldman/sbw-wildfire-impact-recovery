@@ -3,30 +3,53 @@
 library(dplyr)
 library(sf)
 
+#check and set working directory
+# Function to set appropriate path based on working directory
+set_appropriate_path <- function() {
+  current_wd <- getwd()
+  cat("Current working directory:", current_wd, "\n")
+  
+  # Check if working directory contains '/goldma34/'
+  if (grepl("/goldma34/", current_wd)) {
+    base_path <- "/home/goldma34/sbw-wildfire-impact-recovery/"
+    cat("Using server path:", base_path, "\n")
+  } else {
+    # Use current working directory as base
+    base_path <- file.path(getwd())
+    cat("Using local path:", base_path, "\n")
+  }
+  
+  return(base_path)
+}
+
+# Set the base path
+base_path <- set_appropriate_path()
+
+
 # read in history data
-history <- read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_defoliation_history_wx.csv")
+history <- read.csv(file.path(base_path, "/data/on_defoliation_history_wx.csv"))
 
 # shorten host_percentage to host_pct
 history <- history %>% 
   rename("host_pct" = "host_percentage")
 
 # read in centroids
-centroids <- read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_fire_centroids.csv")
+centroids <- read.csv(file.path(base_path, "/data/on_fire_centroids.csv"))
 
 # read in recovery
-recovery_defol = read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_recovery_magnitude.csv")
+recovery_defol = read.csv(file.path(base_path, "/data/on_recovery_magnitude.csv"))
 
-recovery_non_defol = read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_no_history_recovery_magnitude.csv")
+recovery_non_defol = read.csv(file.path(base_path, "/data/on_no_history_recovery_magnitude.csv"))
 
 # read in climate post
-post_climate_no_history <-  read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_no_history_final_era5_clim.csv")
+post_climate_no_history <-  read.csv(file.path(base_path, "/data/on_no_history_final_era5_clim.csv"))
 
-post_climate_history_1 <-  read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_history_final_era5_clim.csv")
+post_climate_history_1 <-  read.csv(file.path(base_path, "/data/on_history_final_era5_clim.csv"))
 
-post_climate_history_2 <-  read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_history_final_era5_clim_missing.csv")
+post_climate_history_2 <-  read.csv(file.path(base_path, "/data/on_history_final_era5_clim_missing.csv"))
 
 # read in topography
-topo <- read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_co-occurrences_topo.csv")
+topo <- read.csv(file.path(base_path, "/data/on_co-occurrences_topo.csv"))
 
 # merge recovery dataframes
 recovery <- rbind(recovery_defol, recovery_non_defol) %>% 
@@ -63,7 +86,7 @@ history_gt90 <- history %>%
 h90.sf <- st_as_sf(history_gt90, coords = c("x", "y"), crs = 4326)
 
 #sbw history
-sbw <- read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/sbw-defol-data-v2.csv")
+sbw <- read.csv(file.path(base_path, "/data/sbw-defol-data-v2.csv"))
 
 # clean history
 history_gt90 <- history_gt90 %>% 
@@ -120,9 +143,9 @@ hist_gt90_3_2 <- subset(history_gt90, window_opp_2 == "0" | window_opp_2 == "3")
 
 # load matched data
 # matched data sf sev
-m.data <- read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_sev_match_data.csv")
+m.data <- read.csv(file.path(base_path, "/data/on_sev_match_data.csv"))
 m.data.sev_sf <- st_as_sf(m.data, coords = c("x", "y"), crs = 4326)
 # matched data sf rec
 # Convert the data frame to an sf object
-m.data.rec <- read.csv("/home/goldma34/sbw-wildfire-impact-recovery/data/on_rec_match_data.csv")
+m.data.rec <- read.csv(file.path(base_path, "/data/on_rec_match_data.csv"))
 m.data.rec_sf <- st_as_sf(m.data.rec, coords = c("x", "y"), crs = 4326)
