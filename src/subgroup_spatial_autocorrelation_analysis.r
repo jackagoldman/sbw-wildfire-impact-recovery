@@ -91,6 +91,25 @@ formula.sev <- rbr_w_offset ~host_pct + Cumulative_Years_Defol + isi_90 +
   dc_90 + dmc_90 + ffmc_90 + bui_90+ fwi_90 + mean_tri+  x + y 
 
 
+
+# NULL MODEL
+# Fit the null model
+null_model_sev_wo1 <- lm(formula.sev , data = defol_only_sev_1)
+
+# vif
+null_vif <- identify_high_vif(null_model_sev_wo1, threshold = 10)
+
+# check vifs
+vif_list <- null_vif$high_vif_vars
+
+#update formula to remove high VIF variables based on vif_list  
+formula.sev_null <- update(formula.sev, . ~ . - isi_90 - dc_90 - dmc_90  - bui_90 - fwi_90)
+
+# Fit the null model without high VIF variables
+null_model_sev_wo1 <- lm(formula.sev_null, data = defol_only_sev_1)
+
+
+
 # MEM as spatial predictor
 
 # Create spatial weights
@@ -187,20 +206,7 @@ print(mod.sum_sev_mem)
 vif_results <- vif(model_lm_sev_mem)
 # Print the VIF results
 print(vif_results)
-# Identify variables with high VIF
-identify_high_vif <- function(model, threshold = 10) {
-  vif_values <- vif(model)
-  high_vif_vars <- names(vif_values[vif_values > threshold])
-  
-  if (length(high_vif_vars) > 0) {
-    cat("Variables with VIF greater than", threshold, ":\n")
-    print(high_vif_vars)
-  } else {
-    cat("No variables with VIF greater than", threshold, "\n")
-  }
-  
-  return(list(high_vif_vars = high_vif_vars))
-}
+
 # Identify variables with high VIF
 high_vif_results <- identify_high_vif(model_lm_sev_mem, threshold = 10)
 
@@ -259,6 +265,108 @@ NP.host_w1
 # visualize moran's I
 plot(NP.host_w1, main = "Moran's I for Residuals (Gaussian)")
 
+
+# add acocount for intermediate and fine-scale spatial patterns mem =====
+
+# Print selected MEMs
+print(selected_mem)
+
+# select intermediate MEM
+int <- as.integer(ncol(selected_mem) / 2)
+
+# select fine scale MEM
+fine <- ncol(selected_mem)
+
+# select intermediate MEM
+int_mem <- selected_mem[, int]
+# Print selected MEM
+print(int_mem)
+
+# select fine scale MEM
+fine_mem <- selected_mem[, fine]
+
+# cbind selected MEMs to the original data
+defol_only_sev_1 <- cbind(defol_only_sev_1, int_mem, fine_mem)
+
+# LM
+# modify formula to include selected MEMs
+formula.sev_mem2 <- update(formula.sev_mem, . ~ . + int_mem + fine_mem)
+formula.sev_mem2 <- update(formula.sev_mem2, . ~ . - x - y)
+
+# fit the model using LM
+model_lm_sev_mem2 <- lm(formula.sev_mem2, data = defol_only_sev_1)
+# Display the model summary
+mod.sum_sev_mem2 <- summary(model_lm_sev_mem2)
+# print
+print(mod.sum_sev_mem2)
+
+#check multicollinearity
+vif_results2 <- vif(model_lm_sev_mem2)
+# Print the VIF results
+print(vif_results2)
+
+
+# Identify variables with high VIF
+high_vif_results2 <- identify_high_vif(model_lm_sev_mem2, threshold = 10)
+
+# Get the list of variables with high VIF
+high_vif_vars2 <- high_vif_results2$high_vif_vars
+# Print the variables with high VIF
+print(high_vif_vars2)
+
+# remove high VIF variables from the model
+formula.wo1.2 <- update(formula.sev_mem2, . ~ . - isi_90 - dc_90 - dmc_90  - bui_90 - fwi_90)
+
+#refit the model again without high VIF variables
+model_lm_sev_mem_wo1.2 <- lm(formula.wo1.2, data = defol_only_sev_1)
+# Display the model summary
+mod.sum_sev_mem_wo1.2 <- summary(model_lm_sev_mem_wo1.2)
+# print
+print(mod.sum_sev_mem_wo1.2)
+#check multicollinearity
+vif_results_wo1.2 <- vif(model_lm_sev_mem_wo1.2)
+# Print the VIF results
+print(vif_results_wo1.2)
+
+#get residuals
+defol_only_sev_1$residuals_lm_mem2 <- residuals(model_lm_sev_mem2)
+
+## Compute the variogram
+variogram_lm_wo1.2 <- gstat::variogram(residuals_lm_mem2 ~ 1, data = defol_only_sev_1)
+
+# Plot the variogram
+lm_var_plot2 <- plot(variogram_lm_wo1.2, main = "Variogram of Residuals (Gaussian)")
+
+print(lm_var_plot2)
+
+# confirm defol_only as dataframe
+df.sev_1 <- as.data.frame(defol_only_sev_1)
+
+# Create a spatial plot of residuals with lm
+spat.resid.sev_plot_wo1.2 <- ggplot() +
+  geom_sf(data = ontario, fill = "navajowhite1", color = "black") +
+  geom_point(data = df.sev_1, aes(x = x, y = y, color = residuals_lm_mem2)) +
+  scale_color_gradient2(low = "#88CCEEA0", mid = "white", high = "#8B0000A0", midpoint = 0) +
+  labs(title = NULL, x = "Longitude", y = "Latitude", color = "Residuals") +
+  theme_bw()
+
+# moran's I
+NP.rbr_w1.2 <- moranNP.randtest(defol_only_sev_1$residuals_lm_mem2, listw_gab, nrepet = 999, alter = "two-sided") 
+NP.rbr_w1.2
+
+# visualize moran's I
+plot(NP.rbr_w1.2, main = "Moran's I for Residuals (Gaussian)")
+
+# compare models to see how much variation is explained by the MEMs
+#null
+MuMIn::r.squaredGLMM(null_model_sev_wo1)
+
+# Calculate R-squared for the model with large scale pattern 
+r.squaredGLMM(model_lm_sev_mem_wo1)
+# Calculate R-squared for the model with large, int, fine scale pattern
+r.squaredGLMM(model_lm_sev_mem_wo1.2)
+
+#
 # Window of Opptunity 2 ==========================
 # MEM as spatial predictor
 
@@ -422,11 +530,11 @@ spat.resid.sev_plot_wo2 <- ggplot() +
   theme_bw()
 
 # moran's I
-NP.rbr_w2 <- moranNP.randtest(defol_only_sev_2$rbr_w_offset, listw_d.2, nrepet = 999, alter = "two-sided") 
+NP.rbr_w2 <- moranNP.randtest(defol_only_sev_2$residuals_lm_mem, listw_d.2, nrepet = 999, alter = "two-sided") 
 NP.rbr_w2
 
 # visualize moran's I
-plot(NP.rbr_w1, main = "Moran's I for Residuals (Gaussian)")
+plot(NP.rbr_w2, main = "Moran's I for Residuals")
 
 # Window of Opptunity 3 ==========================
 # MEM as spatial predictor
@@ -770,6 +878,13 @@ NP.rbr_w4
 # visualize moran's I
 plot(NP.rbr_w4, main = "Moran's I for Residuals (Gaussian)")
 
+
+# moran's I
+NP.host_w4 <- moranNP.randtest(defol_only_sev_4$host_pct, listw_gab.4, nrepet = 999, alter = "two-sided") 
+NP.host_w4
+
+# visualize moran's I
+plot(NP.host_w4, main = "Moran's I for Residuals (Gaussian)")
 
 
 
