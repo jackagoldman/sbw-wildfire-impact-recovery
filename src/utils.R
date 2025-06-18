@@ -566,8 +566,318 @@ publication_panel_all_fires <- function(study_area, treatment_effects, residuals
           
                               
     print(tight_layout)
-    ggsave(output_file, plot = tight_layout, width = 12, height = 10, dpi = 300)
+    ggsave(output_file, plot = tight_layout, 
+     width = 8.5,     # Letter width in inches
+      height = 11,     # Letter height in inches
+      units = "in",    # Specify units as inches
+      dpi = 300 )
     cat(sprintf("Figure saved to: %s\n", output_file))
     return(tight_layout)                          
                               
+}
+
+
+#' Identify Variables with High VIF
+#'
+#' This function checks for multicollinearity using Variance Inflation Factors (VIF)
+#' and returns a list of variables with VIF values above a specified threshold.
+#'
+#' @param model A fitted model object (typically linear model, GLM, or GLS) that works with the vif() function.
+#' @param threshold Numeric value specifying the VIF threshold above which variables should be identified (default: 10).
+#'
+#' @return A list containing two elements:
+#'   \item{high_vif_vars}{Character vector of variables with VIF above the threshold}
+#'   \item{vif_values}{Data frame containing all VIF values for reference}
+#'
+#' @examples
+#' \dontrun{
+#' # For a GLS model
+#' library(nlme)
+#' gls_model <- gls(y ~ x1 + x2 + x3 + x4, data = your_data)
+#' high_vif <- identify_high_vif(gls_model, threshold = 5)
+#' }
+#'
+#' @importFrom car vif
+#' @importFrom tibble rownames_to_column
+#' @export
+# Identify variables with high VIF
+identify_high_vif <- function(model, threshold = 10) {
+  vif_values <- vif(model)
+  high_vif_vars <- names(vif_values[vif_values > threshold])
+  
+  if (length(high_vif_vars) > 0) {
+    cat("Variables with VIF greater than", threshold, ":\n")
+    print(high_vif_vars)
+  } else {
+    cat("No variables with VIF greater than", threshold, "\n")
+  }
+  
+  return(list(high_vif_vars = high_vif_vars))
+}
+
+
+###### MAKE SEPARATE FUNCTIONS
+# 1 - delauney triangulation and selecting MEMS (forward sel) - returns MEMS
+# 2 -  Runs LM with first MEMs, check VIF, adj R2, variogram, Moran's I, mod summary
+# 3 - Second function to run other MEMs if Moran I from function 2 is significant
+#' MEM function
+#' 
+#' 
+
+
+#' Generate Moran's Eigenvector Maps (MEMs) for Spatial Analysis
+#'
+#' This function creates Moran's Eigenvector Maps (MEMs) from spatial data to account for 
+#' spatial autocorrelation in regression models. It performs coordinate transformation to 
+#' Statistics Canada Lambert projection (EPSG:3348), creates a neighbor network using 
+#' Delaunay triangulation, and selects relevant eigenvectors through forward selection.
+#'
+#' @param data A data frame containing spatial data with x and y coordinates
+#'
+#' @return A list containing the following elements:
+#'   \item{mems}{The complete set of Moran's Eigenvector Maps}
+#'   \item{mems_selected}{Results from forward selection of MEMs}
+#'   \item{first_mem}{The first (most significant) MEM}
+#'   \item{data}{The original spatial data as a Spatial* object}
+#'   \item{data_w_first_mem}{The original data with the first MEM appended}
+#'   \item{weights}{The spatial weights matrix used to generate MEMs}
+#'
+#' @details
+#' The function:
+#'   1. Converts input data to spatial objects
+#'   2. Transforms coordinates to Statistics Canada Lambert projection (EPSG:3348)
+#'   3. Creates a neighbor network using Delaunay triangulation
+#'   4. Generates Moran's Eigenvector Maps
+#'   5. Performs forward selection to identify significant MEMs
+#'   6. Returns the MEMs and associated data for spatial regression
+#'
+#' @note
+#' This function requires that input data have x and y coordinates in decimal degrees (WGS84).
+#' 
+#' @examples
+#' \dontrun{
+#' # Assume data has x and y coordinates
+#' spatial_data <- data.frame(x = c(-79.3, -79.4), y = c(43.6, 43.7), 
+#'                           rbr_w_offset = c(0.5, 0.7))
+#' mem_results <- get_mems(spatial_data)
+#' 
+#' # Access the first MEM
+#' first_mem <- mem_results$first_mem
+#' 
+#' # Access data with MEM appended
+#' data_with_mem <- mem_results$data_w_first_mem
+#' }
+#'
+#' @importFrom spdep tri2nb nb2listw nbdists
+#' @importFrom adespatial mem forward.sel
+#' @importFrom sp coordinates proj4string CRS
+#' @importFrom sf st_as_sf st_transform
+#'
+#' @export
+get_mems <- function(data){
+  require(spdep)
+  require(spatialreg)
+  require(sp)
+  require(adespatial)
+  require(rnaturalearth)
+  require(rnaturalearthdata)
+  require(ggplot2)
+  require(sf)
+  # set coordinates for spatial data
+  coordinates(data) <- ~x+y
+  
+  #This is the standard lat/long coordinate system
+   proj4string(data) <- CRS("+proj=longlat +datum=WGS84")
+  
+  #Convert sp object to sf for more robust CRS transformation
+  data_sf <- st_as_sf(data)
+  
+  # Transform to Statistics Canada Lambert (EPSG:3348)
+  data_sf <- st_transform(data_sf, 3348)
+  
+  # Convert back to sp for compatibility with spdep functions
+  data <- as(data_sf, "Spatial")
+  
+  # Get coordinates as matrix from the transformed object
+  coords <- as.matrix(coordinates(data))
+
+  # Create neighbors using different methods
+  nbtri <- tri2nb(coords)
+  
+  # define spatial weight matrix and weight edges between neighbours as a function of spatial distances
+  # delauney triangulation
+  disttri <- nbdists(nbtri, coords)
+  fdist_tri <- lapply(disttri, function(x) 1 - x/max(dist(coords)))
+  #create a listw object
+  listw_tri <- nb2listw(nbtri, glist = fdist_tri, style = "W", zero.policy = TRUE)
+
+  # Create MEM
+  mem.tri <- mem(listw_tri)
+
+  # forward selection
+  mem.tri.sel <- forward.sel(Y = as.data.frame(data$rbr_w_offset),X = as.data.frame(mem.tri), nperm = 999)
+
+  # get the order value  from the first row of mem.tri.sel
+  best_mem_order <- mem.tri.sel[1, "order"]
+
+  # select best mem based on the order value
+  best_mem <- mem.tri[,best_mem_order]
+
+  # as data.frame
+  best_mem <- as.data.frame(best_mem)
+  # rename the column to first_mem
+  colnames(best_mem) <- "first_mem"
+
+  #bind
+  data_mem <- cbind(data, first_mem = best_mem)
+
+
+  # return list of mems, selected mems, best mem and data
+  return(list(
+    mems = mem.tri,
+    mems_selected = mem.tri.sel,
+    first_mem = best_mem,
+    data = data,
+    data_w_first_mem = data_mem,
+    weights = listw_tri
+  ))
+
+}
+
+
+#' Fit Linear Models with Moran's Eigenvector Maps
+#'
+#' This function fits linear models with spatial autocorrelation control using 
+#' Moran's Eigenvector Maps (MEMs). It handles multicollinearity by checking VIF values,
+#' creates models with MEMs, and performs diagnostic tests for spatial autocorrelation.
+#'
+#' @param data A data frame containing the response variable, predictors, and a column named 'first_mem'
+#'        with the first Moran's Eigenvector Map (typically from get_mems function)
+#' @param listw A spatial weights list object (typically from spdep)
+#' @param formula A formula specifying the model without the MEM variable
+#' @param null_model Optional parameter to specify a null model for comparison (default: NULL)
+#'
+#' @return A list containing:
+#'   \item{model}{The final linear model with high VIF variables removed and MEM included}
+#'   \item{null_model}{The null model without high VIF variables (if null_model parameter provided)}
+#'   \item{moran_i}{Results of Moran's I test on residuals (from moranNP.randtest)}
+#'   \item{variogram}{Variogram of model residuals}
+#'   \item{adj_r2_null}{Adjusted R-squared of the null model (if null_model parameter provided)}
+#'   \item{adj_r2_model}{Adjusted R-squared of the final model}
+#'
+#' @details
+#' The function performs the following steps:
+#' \enumerate{
+#'   \item If a null_model is provided, it fits and removes variables with high VIF
+#'   \item Updates the formula to include the 'first_mem' variable
+#'   \item Fits a model with the MEM and removes variables with high VIF
+#'   \item Calculates Moran's I on the residuals to check for remaining spatial autocorrelation
+#'   \item Creates a variogram of the residuals
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # First generate MEMs
+#' mem_results <- get_mems(fire_data)
+#' 
+#' # Define your formula
+#' formula <- rbr_w_offset ~ host_pct + Cumulative_Years_Defol + isi_90 + mean_tri
+#' 
+#' # Fit model with MEM
+#' model_results <- lm_model(
+#'   data = mem_results$data_w_first_mem,
+#'   listw = mem_results$weights,
+#'   formula = formula
+#' )
+#' 
+#' # Check results
+#' summary(model_results$model)
+#' print(model_results$moran_i)
+#' plot(model_results$variogram)
+#' }
+#'
+#' @importFrom spdep moran.test
+#' @importFrom adespatial moranNP.randtest
+#' @importFrom gstat variogram
+#' @importFrom sp coordinates
+#' @export
+lm_model <- function(data, listw, formula, null_model = NULL){
+  require(spdep)
+  require(spatialreg)
+  require(sp)
+  require(adespatial)
+
+  set.seed(123) # for reproducibility of morans I test
+
+
+  if (!is.null(null_model)) {
+  # fit null model
+    null_model <- lm(formula, data = data)
+    # vif
+    null_vif <- identify_high_vif(null_model, threshold = 10)
+    # check vifs
+    vif_list_null <- null_vif$high_vif_vars
+    # Get all terms from the right side of the formula
+    all_terms <- attr(terms(formula), "term.labels")
+    # Filter out the variables to remove
+    terms_to_keep <- setdiff(all_terms, vif_list_null)
+    # Create a new formula
+    response_var <- as.character(formula)[2]
+    formula.sev_null <- reformulate(termlabels = terms_to_keep, response = response_var)
+    # Fit the null model without high VIF variables
+    null_model_sev <- lm(formula.sev_null, data = data)
+    # get adjusted r2
+    adj_r2_null <- summary(null_model_sev)$adj.r.squared
+  }
+
+  # fit models with MEM
+  # update formula with large scale MEM
+  formula <- update(formula, . ~ . + first_mem)
+  
+  mem_model <- lm(formula, data = data)
+  # vif
+  mem_model_vif <- identify_high_vif(mem_model, threshold = 10)
+  
+  # check vifs
+  mem_list_vif <- mem_model_vif$high_vif_vars
+  
+  # Get all terms from the right side of the formula
+  all_terms_mem_model <- attr(terms(formula), "term.labels")
+  
+  # Filter out the variables to remove
+  terms_to_keep_mem_model <- setdiff(all_terms_mem_model, mem_list_vif)
+  
+  # Create a new formula
+  formula_vif_check <- reformulate(termlabels = terms_to_keep_mem_model, response = response_var)
+  # Fit the large scale model without high VIF variables
+  model_vif_removed <- lm(formula_vif_check, data = data)
+  # get adjusted r2
+  adj_r2_model <- summary(model_vif_removed)$adj.r.squared
+
+  # get moran's I
+  moran_i <- moranNP.randtest(residuals(model_vif_removed), listw, nrepet = 999, alter = "two-sided") 
+
+  # get variogram
+
+  vario <- variogram(residuals(model_vif_removed) ~ 1, data = data)
+
+  if (!is.null(null_model)) {
+    
+    # return list with model, null model, moran's I and variogram
+    return(list(
+      model = model_vif_removed,
+      null_model = null_model_sev,
+      morans_i = moran_i,
+      variogram = vario,
+      adj_r2_null = adj_r2_null,
+      adj_r2_model = adj_r2_model
+    ))
+  } else {
+    return(list(
+      model = model_vif_removed,
+      morans_i = moran_i,
+      variogram = vario,
+      adj_r2_model = adj_r2_model
+    ))
+  }
 }
