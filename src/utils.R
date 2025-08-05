@@ -728,8 +728,94 @@ get_mems <- function(data){
   # rename the column to first_mem
   colnames(best_mem) <- "first_mem"
 
+
   #bind
   data_mem <- cbind(data, first_mem = best_mem)
+
+  # get second mem and return 
+  second_mem_order <- mem.tri.sel[2,"order"]
+
+  # 
+  second_mem <- mem.tri[,second_mem_order]
+  # as data.frame
+  second_mem <- as.data.frame(second_mem)
+  # rename the column to second_mem
+  colnames(second_mem) <- "second_mem"
+  # bind second mem to data
+  data_mem_w2 <- cbind(data_mem, second_mem = second_mem)
+  # get third mem and return
+  third_mem_order <- mem.tri.sel[3,"order"]
+  third_mem <- mem.tri[,third_mem_order]
+  # as data.frame
+  third_mem <- as.data.frame(third_mem)
+  # rename the column to third_mem
+  colnames(third_mem) <- "third_mem"
+  # bind third mem to data
+  data_mem_w3 <- cbind(data_mem_w2, third_mem = third_mem)
+  # get fourth mem and return
+  fourth_mem_order <- mem.tri.sel[4,"order"]
+  fourth_mem <- mem.tri[,fourth_mem_order]
+  # as data.frame
+  fourth_mem <- as.data.frame(fourth_mem)
+  # rename the column to fourth_mem
+  colnames(fourth_mem) <- "fourth_mem"
+  # bind fourth mem to data
+  data_mem_w4<- cbind(data_mem_w3, fourth_mem = fourth_mem)
+  # get fifth mem and return
+  fifth_mem_order <- mem.tri.sel[5,"order"]
+  fifth_mem <- mem.tri[,fifth_mem_order]
+  # as data.frame
+  fifth_mem <- as.data.frame(fifth_mem)
+  # rename the column to fifth_mem
+  colnames(fifth_mem) <- "fifth_mem"
+  # bind fifth mem to data
+  data_mem_w5 <- cbind(data_mem_w4, fifth_mem = fifth_mem)
+  # get sixth mem and return
+  sixth_mem_order <- mem.tri.sel[6,"order"]
+  sixth_mem <- mem.tri[,sixth_mem_order]
+  # as data.frame
+  sixth_mem <- as.data.frame(sixth_mem)
+  # rename the column to sixth_mem
+  colnames(sixth_mem) <- "sixth_mem"
+  # bind sixth mem to data
+  data_mem_w6 <- cbind(data_mem_w5, sixth_mem = sixth_mem)
+  # get seventh mem and return
+  seventh_mem_order <- mem.tri.sel[7,"order"]
+  seventh_mem <- mem.tri[,seventh_mem_order]
+  # as data.frame
+  seventh_mem <- as.data.frame(seventh_mem)
+  # rename the column to seventh_mem
+  colnames(seventh_mem) <- "seventh_mem"
+  # bind seventh mem to data
+  data_mem_w7 <- cbind(data_mem_w6, seventh_mem = seventh_mem)
+  # get eighth mem and return
+  eighth_mem_order <- mem.tri.sel[8,"order"]
+  eighth_mem <- mem.tri[,eighth_mem_order]
+  # as data.frame
+  eighth_mem <- as.data.frame(eighth_mem)
+  # rename the column to eighth_mem
+  colnames(eighth_mem) <- "eighth_mem"
+  # bind eighth mem to data
+  data_mem_w8 <- cbind(data_mem_w7, eighth_mem = eighth_mem)
+  # get ninth mem and return
+  ninth_mem_order <- mem.tri.sel[9,"order"]
+  ninth_mem <- mem.tri[,ninth_mem_order]
+  # as data.frame
+  ninth_mem <- as.data.frame(ninth_mem)
+  # rename the column to ninth_mem
+  colnames(ninth_mem) <- "ninth_mem"
+  # bind ninth mem to data
+  data_mem_w9 <- cbind(data_mem_w8, ninth_mem = ninth_mem)
+  # get tenth mem and return
+  tenth_mem_order <- mem.tri.sel[10,"order"]
+  tenth_mem <- mem.tri[,tenth_mem_order]
+  # as data.frame
+  tenth_mem <- as.data.frame(tenth_mem)
+  # rename the column to tenth_mem
+  colnames(tenth_mem) <- "tenth_mem"
+  # bind tenth mem to data
+  data_mem_w10 <- cbind(data_mem_w9, tenth_mem = tenth_mem)
+
 
 
   # return list of mems, selected mems, best mem and data
@@ -739,6 +825,7 @@ get_mems <- function(data){
     first_mem = best_mem,
     data = data,
     data_w_first_mem = data_mem,
+    data_w_ten_mems = data_mem_w10,
     weights = listw_tri
   ))
 
@@ -801,7 +888,7 @@ get_mems <- function(data){
 #' @importFrom gstat variogram
 #' @importFrom sp coordinates
 #' @export
-lm_model <- function(data, listw, formula, null_model = NULL){
+lm_model <- function(data, listw, formula, null_model = NULL, mems = "first_mem"){
   require(spdep)
   require(spatialreg)
   require(sp)
@@ -832,9 +919,24 @@ lm_model <- function(data, listw, formula, null_model = NULL){
 
   # fit models with MEM
   # update formula with large scale MEM
-  formula <- update(formula, . ~ . + first_mem)
+  # add if statement to update formula with second_mem or third_mem if arguments second_mem or third_mem are provided
+  # Check if mems parameter is provided and not empty
+  if (length(mems) > 0) {
+    # Add each MEM to the formula
+    for (mem in mems) {
+      # Check if the MEM exists in the data
+      if (mem %in% names(data)) {
+        formula <- update(formula, as.formula(paste0("~ . + ", mem)))
+        cat("Added", mem, "to the formula\n")
+      } else {
+        warning("MEM variable '", mem, "' not found in data. Skipping.")
+      }
+    }
+  }
   
-  mem_model <- lm(formula, data = data)
+
+  
+  mem_model <- lm(formula, data = data, weights =data$weights)
   # vif
   mem_model_vif <- identify_high_vif(mem_model, threshold = 10)
   
@@ -850,7 +952,7 @@ lm_model <- function(data, listw, formula, null_model = NULL){
   # Create a new formula
   formula_vif_check <- reformulate(termlabels = terms_to_keep_mem_model, response = response_var)
   # Fit the large scale model without high VIF variables
-  model_vif_removed <- lm(formula_vif_check, data = data)
+  model_vif_removed <- lm(formula_vif_check, data = data, weights = data$weights)
   # get adjusted r2
   adj_r2_model <- summary(model_vif_removed)$adj.r.squared
 
@@ -869,6 +971,7 @@ lm_model <- function(data, listw, formula, null_model = NULL){
       null_model = null_model_sev,
       morans_i = moran_i,
       variogram = vario,
+      high_vfs = mem_list_vif,
       adj_r2_null = adj_r2_null,
       adj_r2_model = adj_r2_model
     ))

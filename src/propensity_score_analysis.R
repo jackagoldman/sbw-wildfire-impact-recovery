@@ -15,7 +15,7 @@ source("src/utils.R")
 
 
 # Load your data 
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/load_data.R")  # Replace with actual script that loads hist_gt90_1
+source("src/load_data.R")  # Replace with actual script that loads hist_gt90_1
 
 # Part 1: SEVERITY ==============================
 
@@ -150,20 +150,44 @@ ggsave(
 
 ## Severity average treatment effect estimate =====================
 
-# fit model
-fit_sev <- lm(rbr_w_offset  ~ history + host_pct+ isi_90 + dc_90+ dmc_90 + ffmc_90 + bui_90 + fwi_90 + mean_tri,  data = m.data,weights = weights)
+# Define the model formula =====================
+formula.sev <- rbr_w_offset ~history + host_pct  + Cumulative_Years_Defol:Time_Since_Defol + isi_90 + 
+  dc_90 + dmc_90 + ffmc_90 + bui_90+ fwi_90 + mean_tri + fire_area
+
+m.data <- mutate(m.data, fire_area = (total_pixels * 900) / 10000)
+
+# scale
+# standardize the data
+cols_to_scale <- c("host_pct",  "isi_90", "dc_90", 
+                   "dmc_90", "ffmc_90", "bui_90", "fwi_90", "mean_tri", "fire_area")
+
+#
+m.data.2 <- m.data
+
+# Scale the selected columns in the @data slot
+m.data.2[cols_to_scale] <- scale(m.data.2[cols_to_scale])
+
+# run model
+sev_mod.1 <-lm(formula.sev, weights = m.data.2$weights, data = m.data.2 )
+
+#vif
+vif(sev_mod.1)
+
+
+#update model 
+sev.model.2 <- update(sev_mod.1, . ~ . - dmc_90 - bui_90)
+
+#check model summary
+print(sum_sev_2 <- summary(sev.model.2))
+
 
 # avg_comparisons for treatment effect
-fit_att_sev <- as.data.frame(marginaleffects::avg_comparisons(fit_sev,
+fit_att_sev <- as.data.frame(marginaleffects::avg_comparisons(sev.model.2,
                                                           variables = "history",
                                                           vcov = ~subclass,
                                                           newdata = subset(history == 1))) %>%  mutate(Fires= "all")
 
-# results
-fit_att_sev
-
-#rsquared
-r.squaredGLMM(fit_sev)
+print(fit_att_sev)
 
 # Create a severity treatment effect data frame with better formatted column names
 sev_treatment_effects <- fit_att_sev %>%
@@ -181,7 +205,8 @@ sev_treatment_effects <- fit_att_sev %>%
   select(Model, Treatment_Effect, SE, CI_Lower, CI_Upper, P_Value, Fires)
 
 # save rds
-saveRDS(sev_treatment_effects, "/home/goldma34/sbw-wildfire-impact-recovery/results/all_fires/treatment_effects_sev.rds")
+saveRDS(sev_treatment_effects, "results/all_fires/treatment_effects_sev_final.rds")
+
 
 
 # Save this for later when we'll combine with recovery effects
@@ -218,11 +243,12 @@ ggsave(plot = plot.p.sev_all, filename = "/home/goldma34/sbw-wildfire-impact-rec
 
 ## Sensitivity analysis for severity #####
 
-# benchmark covariates
-covariates <- c("host_pct", "isi_90", "dc_90", "dmc_90", "ffmc_90", "bui_90", "fwi_90", "mean_tri")
+# benchmark covariates 
+# which varibles to remove
+covariates <- c("host_pct", "isi_90",  "ffmc_90",  "fwi_90", "dc_90", "mean_tri", "fire_area")
 
 # run sensitivity analysis
-sev.sensitivity <- sensemakr(model = fit_sev, 
+sev.sensitivity <- sensemakr(model = sev.model.2, 
                                 treatment = "history",
                                 benchmark_covariates = covariates,
                                 alpha = 0.05, 
@@ -360,23 +386,41 @@ ggsave(
 
 
 ## Recovery average treatment estimate ========
-m.data.rec_test  <- m.data.rec %>% 
-  mutate(history = case_when(history == 1 ~ "Defoliated",
-                             history == 0 ~ "Non-Defoliated"))
 
-fit_rec_baseline <- lm(recovery  ~ history + host_pct+rbr_w_offset + mean_temperature + sum_precipitation_mm + mean_tri,  data = m.data.rec,weights = weights)
+formula.rec <-  recovery ~ rbr_w_offset + history + host_pct  + Cumulative_Years_Defol:Time_Since_Defol + mean_temperature + sum_precipitation_mm + mean_tri +fire_area
 
-fit_att_rec <- as.data.frame(marginaleffects::avg_comparisons(fit_rec_baseline,
-                                                              variables = "history",
-                                                              vcov = ~subclass,
-                                                              newdata = subset(history == 1))) %>% 
-  mutate(Fires= "all")
+m.data.rec <- mutate(m.data.rec, fire_area = (total_pixels * 900) / 10000)
+
+# scale
+# standardize the data
+cols_to_scale <- c("host_pct",  "rbr_w_offset", "mean_temperature", "sum_precipitation_mm", "mean_tri", "fire_area")
+
+#
+m.data.rec2 <- m.data.rec
+
+# Scale the selected columns in the @data slot
+m.data.rec2[cols_to_scale] <- scale(m.data.rec2[cols_to_scale])
+
+# run model
+rec_mod.1 <-lm(formula.rec, weights = m.data.rec2$weights, data = m.data.rec2 )
+
+#vif
+vif(rec_mod.1)
+
+
+#check model summary
+print(sum_rec <- summary(rec_mod.1))
+
+
+# avg_comparisons for treatment effect
+fit_att_rec <- as.data.frame(marginaleffects::avg_comparisons(rec_mod.1,
+                                                          variables = "history",
+                                                          vcov = ~subclass,
+                                                          newdata = subset(history == 1))) %>%  mutate(Fires= "all")
+
 
 # summary
 fit_att_rec
-
-#r squared
-r.squaredGLMM(fit_rec_baseline)
 
 # Create a recovery treatment effect data frame with better formatted column names
 rec_treatment_effects <- fit_att_rec %>%
@@ -394,15 +438,19 @@ rec_treatment_effects <- fit_att_rec %>%
   select(Model, Treatment_Effect, SE, CI_Lower, CI_Upper, P_Value, Fires)
 
 #save rds
-saveRDS(rec_treatment_effects, "/home/goldma34/sbw-wildfire-impact-recovery/results/all_fires/treatment_effects_rec.rds")
+saveRDS(rec_treatment_effects, "results/all_fires/treatment_effects_rec_final.rds")
 
+t = readRDS(file.path(base_path, "results/all_fires/treatment_effects_rec_final.rds"))
+summary(t)
+
+t
 # Combine both treatment effects
 combined_effects <- bind_rows(sev_treatment_effects, rec_treatment_effects)
 
 # Export combined treatment effects to CSV
 write.csv(
   combined_effects,
-  "/home/goldma34/sbw-wildfire-impact-recovery/results/all_fires/treatment_effects_all_fires.csv",
+  "results/all_fires/treatment_effects_all_fires_final.csv",
   row.names = FALSE
 )
 
@@ -445,12 +493,13 @@ ggsave(plot = plot.p.rec_all, filename = "/home/goldma34/sbw-wildfire-impact-rec
 ##  sensitivity analysis for recovery  -----------
 
 # benchmark covariates
-covariates_rec <- c("host_pct", "rbr_w_offset", "mean_temperature", "sum_precipitation_mm", "mean_tri")
+covariates_rec <- c("host_pct", "rbr_w_offset", "mean_temperature", "sum_precipitation_mm", "mean_tri", "fire_area")
 
 # run sensitivity analysis
-rec.sensitivity <- sensemakr(model = fit_rec_baseline, 
+rec.sensitivity <- sensemakr(model = rec_mod.1, 
                              treatment = "history",
-                             benchmark_covariates = covariates_rec,
+                             #benchmark_covariates = covariates_rec,
+                             kd = 1:3,
                              alpha = 0.05, 
                              reduce = TRUE)
 

@@ -3,15 +3,38 @@ library(MatchIt)
 library(dplyr)
 library(marginaleffects)
 library(MuMIn)
+library(pwr)
+
+#check and set working directory
+# Function to set appropriate path based on working directory
+set_appropriate_path <- function() {
+  current_wd <- getwd()
+  cat("Current working directory:", current_wd, "\n")
+  
+  # Check if working directory contains '/goldma34/'
+  if (grepl("/goldma34/", current_wd)) {
+    base_path <- "/home/goldma34/sbw-wildfire-impact-recovery/"
+    cat("Using server path:", base_path, "\n")
+  } else {
+    # Use current working directory as base
+    base_path <- file.path(getwd())
+    cat("Using local path:", base_path, "\n")
+  }
+  
+  return(base_path)
+}
+
+# Set the base path
+base_path <- set_appropriate_path()
 
 # Source the file with function definitions
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/best_model_functions.R")
+source(file.path(base_path, "/src/best_model_functions.R"))
 
 #source the file with covariate balance plots
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/covariate_balance_plots.R")
+source(file.path(base_path, "/src/covariate_balance_plots.R"))
 
 # Load your data 
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/load_data.R")
+source(file.path(base_path, "/src/load_data.R"))
 
 # Check if data is loaded
 if (!exists("hist_gt90_1")) {
@@ -64,7 +87,23 @@ if (!is.null(best_model_sev_1)) {
   cat("\nFitting linear model...\n")
   fit.sev_1 <- lm(rbr_w_offset ~ history + host_pct + isi_90 + dc_90 + dmc_90 + ffmc_90 + bui_90 + fwi_90 + mean_tri,
                data = m.data.sev_1, weights = weights)
-  
+
+  # check vifs 
+  vif_values <- car::vif(fit.sev_1)
+
+  # if any values in vif_values list is greater than 10 remove and update model
+  if (any(vif_values > 10)) { 
+    cat("High VIF detected. Removing variables with VIF > 10...\n")
+    high_vif_vars <- names(vif_values[vif_values > 10])
+    cat("Removing variables:", paste(high_vif_vars, collapse = ", "), "\n")
+   # Create a formula to remove those variables
+   remove_formula <- as.formula(
+   paste(". ~ . -", paste(high_vif_vars, collapse = " - ")))
+   # Update the model
+   fit.sev_1 <- update(fit.sev_1, remove_formula)
+  } else {
+    cat("No high VIF detected. Proceeding with original model.\n")
+  }
   # Print model summary
   cat("\nModel summary:\n")
   print(summary(fit.sev_1))
@@ -77,9 +116,9 @@ if (!is.null(best_model_sev_1)) {
 
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup1_severity.RDS") # nolint: line_length_linter.
-  saveRDS(fit.sev_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_severity.RDS") # nolint: line_length_linter.
-  saveRDS(fit.sev_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_severity_r2.RDS") # nolint # nolint: line_length_linter.
+  saveRDS(best_model_sev_1, file.path(base_path,"/results/subgroup/best_model_subgroup1_severity.RDS")) # nolint: line_length_linter.
+  saveRDS(fit.sev_1, file.path(base_path,"/results/subgroup/fit_model_subgroup1_severity.RDS")) # nolint: line_length_linter.
+  saveRDS(fit.sev_1r2, file.path(base_path,"/results/subgroup/fit_model_subgroup1_severity_r2.RDS")) # nolint # nolint: line_length_linter.
 } else {
   cat("No suitable severity model found for subgroup 1. Try different parameters.\n")
 }
@@ -94,6 +133,7 @@ best_model_rec_1 <- best_model_info_rec_1$best_model
 all_results_rec_1 <- best_model_info_rec_1$results
 
 # Check if we found a best model
+
 if (!is.null(best_model_rec_1)) {
   # Continue with analysis using best model
   cat("Getting matched data...\n")
@@ -113,14 +153,37 @@ if (!is.null(best_model_rec_1)) {
   fit.rec_1 <- lm(recovery ~ history + host_pct + rbr_w_offset+ mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec_1, weights = weights)
   
+  # check vifs 
+  vif_values <- car::vif(fit.rec_1)
+
+  # if any values in vif_values list is greater than 10 remove and update model
+  if (any(vif_values > 10)) { 
+    cat("High VIF detected. Removing variables with VIF > 10...\n")
+    high_vif_vars <- names(vif_values[vif_values > 10])
+    cat("Removing variables:", paste(high_vif_vars, collapse = ", "), "\n")
+   # Create a formula to remove those variables
+   remove_formula <- as.formula(
+   paste(". ~ . -", paste(high_vif_vars, collapse = " - ")))
+   # Update the model
+   fit.rec_1 <- update(fit.rec_1, remove_formula)
+  } else {
+    cat("No high VIF detected. Proceeding with original model.\n")
+  }
   # Print model summary
   cat("\nModel summary:\n")
   print(summary(fit.rec_1))
+
+   #rsquared
+  cat("\nR-squared:\n")
+  fit.rec_1r2 <- r.squaredGLMM(fit.rec_1)
+  print(fit.rec_1r2)
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup1_recovery.RDS")
-  saveRDS(fit.rec_1, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_recovery.RDS")
+  saveRDS(best_model_rec_1, file.path(base_path,"/results/subgroup/best_model_subgroup1_recovery.RDS"))
+  saveRDS(fit.rec_1, file.path(base_path,"/results/subgroup/fit_model_subgroup1_recovery.RDS"))
+  saveRDS(fit.rec_1r2, file.path(base_path,"/results/subgroup/fit_model_subgroup1_recovery_r2.RDS"))
+  
 } else {
   cat("No suitable recovery model found for subgroup 1. Try different parameters.\n")
 }
@@ -153,15 +216,37 @@ if (!is.null(best_model_sev_2)) {
   cat("\nFitting linear model...\n")
   fit.sev_2 <- lm(rbr_w_offset ~ history + host_pct + isi_90 + dc_90 + dmc_90 + ffmc_90 + bui_90 + fwi_90 + mean_tri,
                data = m.data.sev_2, weights = weights)
-  
+
+  # check vifs 
+  vif_values <- car::vif(fit.sev_2)
+
+  # if any values in vif_values list is greater than 10 remove and update model
+  if (any(vif_values > 10)) { 
+    cat("High VIF detected. Removing variables with VIF > 10...\n")
+    high_vif_vars <- names(vif_values[vif_values > 10])
+    cat("Removing variables:", paste(high_vif_vars, collapse = ", "), "\n")
+   # Create a formula to remove those variables
+   remove_formula <- as.formula(
+   paste(". ~ . -", paste(high_vif_vars, collapse = " - ")))
+   # Update the model
+   fit.sev_2 <- update(fit.sev_2, remove_formula)
+  } else {
+    cat("No high VIF detected. Proceeding with original model.\n")
+  }
   # Print model summary
   cat("\nModel summary:\n")
   print(summary(fit.sev_2))
+
+  #rsquared
+  cat("\nR-squared:\n")
+  fit.sev_2r2 <- r.squaredGLMM(fit.sev_2)
+  print(fit.sev_2r2)
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup2_severity.RDS")
-  saveRDS(fit.sev_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup2_severity.RDS")
+  saveRDS(best_model_sev_2, file.path(base_path,"/results/subgroup/best_model_subgroup2_severity.RDS"))
+  saveRDS(fit.sev_2, file.path(base_path,"/results/subgroup/fit_model_subgroup2_severity.RDS"))
+  saveRDS(fit.sev_2r2, file.path(base_path,"/results/subgroup/fit_model_subgroup2_severity_r2.RDS"))
 } else {
   cat("No suitable severity model found for subgroup 2. Try different parameters.\n")
 }
@@ -194,15 +279,37 @@ if (!is.null(best_model_rec_2)) {
   cat("\nFitting linear model...\n")
   fit.rec_2 <- lm(recovery ~ history + host_pct + rbr_w_offset+ mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec_2, weights = weights)
-  
+
+  # check vifs 
+  vif_values <- car::vif(fit.rec_2)
+
+  # if any values in vif_values list is greater than 10 remove and update model
+  if (any(vif_values > 10)) { 
+    cat("High VIF detected. Removing variables with VIF > 10...\n")
+    high_vif_vars <- names(vif_values[vif_values > 10])
+    cat("Removing variables:", paste(high_vif_vars, collapse = ", "), "\n")
+   # Create a formula to remove those variables
+   remove_formula <- as.formula(
+   paste(". ~ . -", paste(high_vif_vars, collapse = " - ")))
+   # Update the model
+   fit.rec_2 <- update(fit.rec_2, remove_formula)
+  } else {
+    cat("No high VIF detected. Proceeding with original model.\n")
+  }
   # Print model summary
   cat("\nModel summary:\n")
   print(summary(fit.rec_2))
+
+  #rsquared
+  cat("\nR-squared:\n")
+  fit.rec_2r2 <- r.squaredGLMM(fit.rec_2)
+  print(fit.rec_2r2)
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup2_recovery.RDS")
-  saveRDS(fit.rec_2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup2_recovery.RDS")
+  saveRDS(best_model_rec_2, file.path(base_path,"/results/subgroup/best_model_subgroup2_recovery.RDS"))
+  saveRDS(fit.rec_2, file.path(base_path, "/results/subgroup/fit_model_subgroup2_recovery.RDS"))
+  saveRDS(fit.rec_2r2, file.path(base_path,"/results/subgroup/fit_model_subgroup2_recovery_r2.RDS"))
 } else {
   cat("No suitable recovery model found for subgroup 2. Try different parameters.\n")
 }
@@ -235,15 +342,37 @@ if (!is.null(best_model_sev_3)) {
   cat("\nFitting linear model...\n")
   fit.sev_3 <- lm(rbr_w_offset ~ history + host_pct + isi_90 + dc_90 + dmc_90 + ffmc_90 + bui_90 + fwi_90 + mean_tri,
                data = m.data.sev_3, weights = weights)
-  
+
+  # check vifs 
+  vif_values <- car::vif(fit.sev_3)
+
+  # if any values in vif_values list is greater than 10 remove and update model
+  if (any(vif_values > 10)) { 
+    cat("High VIF detected. Removing variables with VIF > 10...\n")
+    high_vif_vars <- names(vif_values[vif_values > 10])
+    cat("Removing variables:", paste(high_vif_vars, collapse = ", "), "\n")
+   # Create a formula to remove those variables
+   remove_formula <- as.formula(
+   paste(". ~ . -", paste(high_vif_vars, collapse = " - ")))
+   # Update the model
+   fit.sev_3 <- update(fit.sev_3, remove_formula)
+  } else {
+    cat("No high VIF detected. Proceeding with original model.\n")
+  }
   # Print model summary
   cat("\nModel summary:\n")
   print(summary(fit.sev_3))
+
+  #rsquared
+  cat("\nR-squared:\n")
+  fit.sev_3r2 <- r.squaredGLMM(fit.sev_3)
+  print(fit.sev_3r2)
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_severity.RDS")
-  saveRDS(fit.sev_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity.RDS")
+  saveRDS(best_model_sev_3, file.path(base_path, "/results/subgroup/best_model_subgroup3_severity.RDS"))
+  saveRDS(fit.sev_3, file.path(base_path, "/results/subgroup/fit_model_subgroup3_severity.RDS"))
+  saveRDS(fit.sev_3r2, file.path(base_path, "/results/subgroup/fit_model_subgroup3_severity_r2.RDS"))
 } else {
   cat("No suitable severity model found for subgroup 3. Try different parameters.\n")
 }
@@ -276,15 +405,38 @@ if (!is.null(best_model_rec_3)) {
   cat("\nFitting linear model...\n")
   fit.rec_3 <- lm(recovery ~ history + host_pct + rbr_w_offset+ mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec_3, weights = weights)
-  
+
+  # check vifs 
+  vif_values <- car::vif(fit.rec_3)
+
+  # if any values in vif_values list is greater than 10 remove and update model
+  if (any(vif_values > 10)) { 
+    cat("High VIF detected. Removing variables with VIF > 10...\n")
+    high_vif_vars <- names(vif_values[vif_values > 10])
+    cat("Removing variables:", paste(high_vif_vars, collapse = ", "), "\n")
+   # Create a formula to remove those variables
+   remove_formula <- as.formula(
+   paste(". ~ . -", paste(high_vif_vars, collapse = " - ")))
+   # Update the model
+   fit.rec_3 <- update(fit.rec_3, remove_formula)
+  } else {
+    cat("No high VIF detected. Proceeding with original model.\n")
+  }
   # Print model summary
   cat("\nModel summary:\n")
   print(summary(fit.rec_3))
+
+  #rsquared
+  cat("\nR-squared:\n")
+  fit.rec_3r2 <- r.squaredGLMM(fit.rec_3)
+  print(fit.rec_3r2)
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_recovery.RDS")
-  saveRDS(fit.rec_3, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_recovery.RDS")
+  saveRDS(best_model_rec_3, file.path(base_path, "/results/subgroup/best_model_subgroup3_recovery.RDS"))
+  saveRDS(fit.rec_3, file.path(base_path,"/results/subgroup/fit_model_subgroup3_recovery.RDS"))
+  saveRDS(fit.rec_3r2, file.path(base_path,"/results/subgroup/fit_model_subgroup3_recovery_r2.RDS"))
+
 } else {
   cat("No suitable recovery model found for subgroup 3. Try different parameters.\n")
 }
@@ -317,15 +469,37 @@ if (!is.null(best_model_sev_4)) {
   cat("\nFitting linear model...\n")
   fit.sev_4 <- lm(rbr_w_offset ~ history + host_pct + isi_90 + dc_90 + dmc_90 + ffmc_90 + bui_90 + fwi_90 + mean_tri,
                data = m.data.sev_4, weights = weights)
-  
+
+  # check vifs 
+  vif_values <- car::vif(fit.sev_4)
+
+  # if any values in vif_values list is greater than 10 remove and update model
+  if (any(vif_values > 10)) { 
+    cat("High VIF detected. Removing variables with VIF > 10...\n")
+    high_vif_vars <- names(vif_values[vif_values > 10])
+    cat("Removing variables:", paste(high_vif_vars, collapse = ", "), "\n")
+   # Create a formula to remove those variables
+   remove_formula <- as.formula(
+   paste(". ~ . -", paste(high_vif_vars, collapse = " - ")))
+   # Update the model
+   fit.sev_4 <- update(fit.sev_4, remove_formula)
+  } else {
+    cat("No high VIF detected. Proceeding with original model.\n")
+  }
   # Print model summary
   cat("\nModel summary:\n")
   print(summary(fit.sev_4))
+
+  #rsquared
+  cat("\nR-squared:\n")
+  fit.sev_4r2 <- r.squaredGLMM(fit.sev_4)
+  print(fit.sev_4r2)
   
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_sev_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup4_severity.RDS")
-  saveRDS(fit.sev_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup4_severity.RDS")
+  saveRDS(best_model_sev_4,file.path(base_path, "/results/subgroup/best_model_subgroup4_severity.RDS"))
+  saveRDS(fit.sev_4, file.path(base_path, "/results/subgroup/fit_model_subgroup4_severity.RDS"))
+  saveRDS(fit.sev_4r2, file.path(base_path, "/results/subgroup/fit_model_subgroup4_severity_r2.RDS"))
 } else {
   cat("No suitable severity model found for subgroup 4. Try different parameters.\n")
 }
@@ -358,15 +532,39 @@ if (!is.null(best_model_rec_4)) {
   cat("\nFitting linear model...\n")
   fit.rec_4 <- lm(recovery ~ history + host_pct + rbr_w_offset+ mean_temperature + sum_precipitation_mm + mean_tri,
                data = m.data.rec_4, weights = weights)
+
+
+  # check vifs 
+  vif_values <- car::vif(fit.rec_4)
+
+  # if any values in vif_values list is greater than 10 remove and update model
+  if (any(vif_values > 10)) { 
+    cat("High VIF detected. Removing variables with VIF > 10...\n")
+    high_vif_vars <- names(vif_values[vif_values > 10])
+    cat("Removing variables:", paste(high_vif_vars, collapse = ", "), "\n")
+   # Create a formula to remove those variables
+   remove_formula <- as.formula(
+   paste(". ~ . -", paste(high_vif_vars, collapse = " - ")))
+   # Update the model
+   fit.rec_4 <- update(fit.rec_4, remove_formula)
+  } else {
+    cat("No high VIF detected. Proceeding with original model.\n")
+  }
   
   # Print model summary
   cat("\nModel summary:\n")
   print(summary(fit.rec_4))
   
+ #rsquared
+  cat("\nR-squared:\n")
+  fit.rec_4r2 <- r.squaredGLMM(fit.rec_4)
+  print(fit.rec_4r2)
+
   # Save results
   cat("\nSaving results...\n")
-  saveRDS(best_model_rec_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup4_recovery.RDS")
-  saveRDS(fit.rec_4, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup4_recovery.RDS")
+  saveRDS(best_model_rec_4, file.path(base_path, "/results/subgroup/best_model_subgroup4_recovery.RDS"))
+  saveRDS(fit.rec_4, file.path(base_path, "/results/subgroup/fit_model_subgroup4_recovery.RDS"))
+  saveRDS(fit.rec_4r2, file.path(base_path, "/results/subgroup/fit_model_subgroup4_recovery_r2.RDS"))
 } else {
   cat("No suitable recovery model found for subgroup 4. Try different parameters.\n")
 }
@@ -393,7 +591,7 @@ subgroups_summary <- data.frame(
 print(subgroups_summary)
 
 # Save a combined summary of all results
-write.csv(subgroups_summary, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/subgroups_summary.csv", row.names = FALSE)
+write.csv(subgroups_summary, file.path(base_path, "/results/subgroup/subgroups_summary.csv"), row.names = FALSE)
 
 #Collect model coefficients for all successful models
 model_coefs <- list()
@@ -409,7 +607,7 @@ if (!is.null(best_model_rec_3)) model_coefs[["Subgroup 3 - Recovery"]] <- coef(s
 if (!is.null(best_model_rec_4)) model_coefs[["Subgroup 4 - Recovery"]] <- coef(summary(fit.rec_4))
 
 # Save the coefficient results
-saveRDS(model_coefs, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/all_model_coefficients.RDS")
+saveRDS(model_coefs, file.path(base_path, "/results/subgroup/all_model_coefficients.RDS"))
 
 #============================
 # DETAILED MODEL SUMMARY
@@ -417,31 +615,31 @@ saveRDS(model_coefs, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgro
 cat("\n\n======= DETAILED MODEL SUMMARY =======\n")
 
 # Define paths and names for models
-result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
+result_dir <- "/results/subgroup/"
 model_paths <- c(
   # Severity models
-  paste0(result_dir, "best_model_subgroup1_severity.RDS"),
-  paste0(result_dir, "best_model_subgroup2_severity.RDS"),
-  paste0(result_dir, "best_model_subgroup3_severity.RDS"),
-  paste0(result_dir, "best_model_subgroup4_severity.RDS"),
+  paste0(base_path, result_dir, "best_model_subgroup1_severity.RDS"),
+  paste0(base_path, result_dir, "best_model_subgroup2_severity.RDS"),
+  paste0(base_path, result_dir, "best_model_subgroup3_severity.RDS"),
+  paste0(base_path, result_dir, "best_model_subgroup4_severity.RDS"),
   # Recovery models
-  paste0(result_dir, "best_model_subgroup1_recovery.RDS"),
-  paste0(result_dir, "best_model_subgroup2_recovery.RDS"),
-  paste0(result_dir, "best_model_subgroup3_recovery.RDS"),
-  paste0(result_dir, "best_model_subgroup4_recovery.RDS")
+  paste0(base_path, result_dir, "best_model_subgroup1_recovery.RDS"),
+  paste0(base_path, result_dir, "best_model_subgroup2_recovery.RDS"),
+  paste0(base_path, result_dir, "best_model_subgroup3_recovery.RDS"),
+  paste0(base_path, result_dir, "best_model_subgroup4_recovery.RDS")
 )
 
 fit_paths <- c(
   # Severity models
-  paste0(result_dir, "fit_model_subgroup1_severity.RDS"),
-  paste0(result_dir, "fit_model_subgroup2_severity.RDS"),
-  paste0(result_dir, "fit_model_subgroup3_severity.RDS"),
-  paste0(result_dir, "fit_model_subgroup4_severity.RDS"),
+  paste0(base_path, result_dir, "fit_model_subgroup1_severity.RDS"),
+  paste0(base_path, result_dir, "fit_model_subgroup2_severity.RDS"),
+  paste0(base_path, result_dir, "fit_model_subgroup3_severity.RDS"),
+  paste0(base_path, result_dir, "fit_model_subgroup4_severity.RDS"),
   # Recovery models
-  paste0(result_dir, "fit_model_subgroup1_recovery.RDS"),
-  paste0(result_dir, "fit_model_subgroup2_recovery.RDS"),
-  paste0(result_dir, "fit_model_subgroup3_recovery.RDS"),
-  paste0(result_dir, "fit_model_subgroup4_recovery.RDS")
+  paste0(base_path, result_dir, "fit_model_subgroup1_recovery.RDS"),
+  paste0(base_path, result_dir, "fit_model_subgroup2_recovery.RDS"),
+  paste0(base_path, result_dir, "fit_model_subgroup3_recovery.RDS"),
+  paste0(base_path, result_dir, "fit_model_subgroup4_recovery.RDS")
 )
 
 subgroup_names <- c(
@@ -462,7 +660,7 @@ detailed_summary <- generate_model_summary(
   model_paths,
   fit_paths,
   subgroup_names,
-  paste0(result_dir, "detailed_model_summary.csv")
+  paste0(base_path, result_dir, "detailed_model_summary.csv")
 )
 
 # Print summarized version of the detailed summary
@@ -482,7 +680,7 @@ tryCatch({
   library(scales)  # For comma formatting
   
   # Create output directory for plots
-  plots_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/"
+  plots_dir <- file.path(base_path, "plots/")
   dir.create(plots_dir, showWarnings = FALSE, recursive = TRUE)
   
   # Filter only successful models
@@ -688,8 +886,8 @@ cat("\nAnalysis complete. Results saved to results directory.\n")
 #============================
 cat("\n\n======= GENERATING BALANCE ASSESSMENT PLOTS =======\n")
 
-plot_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/plots/balance/"
-result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
+plot_dir <- file.path(base_path, "/plots/balance/")
+result_dir <- file.path(base_path, "/results/subgroup/")
 
 # Create a list of available models
 model_list <- list()
@@ -727,7 +925,7 @@ if (!is.null(best_model_sev_1)) {
   print(fit.sev_1r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.sev_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_severity_r2.RDS")
+  saveRDS(fit.sev_1r2, file.path(base_path, "/results/subgroup/fit_model_subgroup1_severity_r2.RDS"))
 }
 
 
@@ -739,7 +937,7 @@ if (!is.null(best_model_sev_2)) {
   print(fit.sev_2r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.sev_2r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup2_severity_r2.RDS")
+  saveRDS(fit.sev_2r2, file.path(base_path, "/results/subgroup/fit_model_subgroup2_severity_r2.RDS"))
 }
 
 # Add R-squared GLMM for Subgroup 3 severity
@@ -750,7 +948,7 @@ if (!is.null(best_model_sev_3)) {
   print(fit.sev_3r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.sev_3r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity_r2.RDS")
+  saveRDS(fit.sev_3r2, file.path(base_path, "/results/subgroup/fit_model_subgroup3_severity_r2.RDS"))
 }
 
 # Add R-squared GLMM for Subgroup 4 severity
@@ -761,7 +959,7 @@ if (!is.null(best_model_sev_4)) {
   print(fit.sev_4r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.sev_4r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup4_severity_r2.RDS")
+  saveRDS(fit.sev_4r2, file.path(base_path,"/results/subgroup/fit_model_subgroup4_severity_r2.RDS"))
 }
 
 # Add R-squared GLMM for Subgroup 1 recovery
@@ -772,7 +970,7 @@ if (!is.null(best_model_rec_1)) {
   print(fit.rec_1r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.rec_1r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup1_recovery_r2.RDS")
+  saveRDS(fit.rec_1r2, file.path(base_path,"/results/subgroup/fit_model_subgroup1_recovery_r2.RDS"))
 }
 
 # Add R-squared GLMM for Subgroup 2 recovery
@@ -783,7 +981,7 @@ if (!is.null(best_model_rec_2)) {
   print(fit.rec_2r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.rec_2r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup2_recovery_r2.RDS")
+  saveRDS(fit.rec_2r2, file.path(base_path,"/results/subgroup/fit_model_subgroup2_recovery_r2.RDS"))
 }
 
 # Add R-squared GLMM for Subgroup 3 recovery
@@ -794,7 +992,7 @@ if (!is.null(best_model_rec_3)) {
   print(fit.rec_3r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.rec_3r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_recovery_r2.RDS")
+  saveRDS(fit.rec_3r2, file.path(base_path,"/results/subgroup/fit_model_subgroup3_recovery_r2.RDS"))
 }
 
 # Add R-squared GLMM for Subgroup 4 recovery
@@ -805,7 +1003,7 @@ if (!is.null(best_model_rec_4)) {
   print(fit.rec_4r2)
   
   # Add to the saveRDS statements
-  saveRDS(fit.rec_4r2, "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup4_recovery_r2.RDS")
+  saveRDS(fit.rec_4r2, file.path(base_path, "/results/subgroup/fit_model_subgroup4_recovery_r2.RDS"))
 }
 
 
@@ -813,14 +1011,14 @@ if (!is.null(best_model_rec_4)) {
 # GENERATE TREATMENT EFFECT PLOTS
 #============================
 
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/treatment_effect_plots.R")
+source(file.path(base_path, "/src/treatment_effect_plots.R"))
 generate_all_treatment_effect_plots()
 
 #============================
 # GENERATE TREATMENT EFFECT TABLES
 #============================
 
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/export_treatment_effects.R")
+source(file.path(base_path,"/src/export_treatment_effects.R"))
 export_all_treatment_effects()
 
 
@@ -834,8 +1032,8 @@ library(pwr)
 
 
 if (!exists("fit.sev_3") || !exists("m.data.sev_3")) {
-  fit.sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_subgroup3_severity.RDS")
-  best_model_sev_3 <- readRDS("/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/best_model_subgroup3_severity.RDS")
+  fit.sev_3 <- readRDS(file.path(base_path,"/results/subgroup/fit_model_subgroup3_severity.RDS"))
+  best_model_sev_3 <- readRDS(file.path(base_path,"/results/subgroup/best_model_subgroup3_severity.RDS"))
   m.data.sev_3 <- match_data(best_model_sev_3)
 }
 
@@ -870,11 +1068,11 @@ power_plot <- ggplot(power_data, aes(x = sample_size, y = power)) +
 print(power_plot)
 
 #save power plot for Power based on Observed Effect Size
-ggsave(
-  "/home/goldma34/sbw-wildfire-impact-recovery/plots/power_analysis/subgroup3_severity_mss_power.png",
+ggsave(file.path(base_path,
+  "/plots/power_analysis/subgroup3_severity_mss_power.png",
  power_plot, 
  width = 8, 
- height = 6)
+ height = 6))
 
 # Find required sample size for power = 0.8
 min_sample_size <- sample_sizes[min(which(powers >= 0.8))]
@@ -885,7 +1083,7 @@ cat("Minimum sample size required for 80% power:", min_sample_size, "\n")
 #==================================================
 
 #source pwr analysis
-source("/home/goldma34/sbw-wildfire-impact-recovery/src/power_analysis.R")
+source(file.path(base_path,"/src/power_analysis.R"))
 
 
 # Run analysis with sample sizes from 20 to 300
@@ -893,8 +1091,8 @@ result <- min_detectable_effect_size(
   fit.sev_3, 
   m.data.sev_3,
   sample_sizes = seq(20, 300, by = 10),
-  plot_filename = "/home/goldma34/sbw-wildfire-impact-recovery/plots/power_analysis/subgroup3_severity_mdes.png"
-)
+  plot_filename = file.path(base_path,"/plots/power_analysis/subgroup3_severity_mdes.png"
+))
 
 # Print the results
 print(result$plot_cohens_d)

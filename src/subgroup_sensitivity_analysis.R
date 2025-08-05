@@ -3,8 +3,30 @@ library(sensemakr)
 library(dplyr)
 library(ggplot2)
 
+#check and set working directory
+# Function to set appropriate path based on working directory
+set_appropriate_path <- function() {
+  current_wd <- getwd()
+  cat("Current working directory:", current_wd, "\n")
+  
+  # Check if working directory contains '/goldma34/'
+  if (grepl("/goldma34/", current_wd)) {
+    base_path <- "/home/goldma34/sbw-wildfire-impact-recovery/"
+    cat("Using server path:", base_path, "\n")
+  } else {
+    # Use current working directory as base
+    base_path <- file.path(getwd())
+    cat("Using local path:", base_path, "\n")
+  }
+  
+  return(base_path)
+}
+
+# Set the base path
+base_path <- set_appropriate_path()
+
 # Define output directory
-result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
+result_dir <- file.path(base_path, "results/subgroup/")
 
 # Function to safely read RDS files
 safe_read_rds <- function(file_path) {
@@ -33,232 +55,160 @@ fit_rec_2 <- safe_read_rds(paste0(result_dir, "fit_model_subgroup2_recovery.RDS"
 fit_rec_3 <- safe_read_rds(paste0(result_dir, "fit_model_subgroup3_recovery.RDS"))
 fit_rec_4 <- safe_read_rds(paste0(result_dir, "fit_model_subgroup4_recovery.RDS"))
 
-# Define covariates for each model type
-covariates_sev <- c("host_pct", "isi_90", "dc_90", "dmc_90", "ffmc_90", "bui_90", "fwi_90", "mean_tri")
-covariates_rec <- c("host_pct", "mean_temperature", "sum_precipitation_mm", "mean_tri")
-
-# Define benchmark covariates (variables that are likely to be important confounders)
-benchmark_covariates_sev <- c("host_pct", "fwi_90")  # Select key variables as benchmarks
-benchmark_covariates_rec <- c("host_pct", "mean_temperature")
-
-# Function to analyze one model and return results using sensemakr
-analyze_one_model_sensemakr <- function(model, model_name, treatment_var, covariates, benchmark_covs) {
-  if (is.null(model)) {
-    cat("Model is NULL for", model_name, "\n")
-    return(NULL)
-  }
-  
-  cat("Analyzing", model_name, "...\n")
-  
-  # Try to run sensemakr analysis
-  tryCatch({
-    # Run sensemakr analysis
-    sens_result <- sensemakr(
-      model = model,
-      treatment = treatment_var,
-      benchmark_covariates = benchmark_covs,
-      kd = c(1, 2, 3),    # Multiples of the benchmark for confounder strength
-      ky = c(1, 2, 3),    # Multiples of the benchmark for confounder strength
-      q = 1,             # Proportion of treatment effect 
-      alpha = 0.05       # Significance level
-    )
-    
-    # Extract summary information
-    summary_stats <- summary(sens_result)
-    
-    # Extract treatment effect information
-    treatment_effect <- sens_result$estimate
-    std_error <- sens_result$se
-    t_value <- sens_result$t_statistic
-    p_value <- 2 * pt(-abs(t_value), sens_result$dof)
-    
-    # Extract robustness values
-    rv_qa <- sens_result$sensitivity_stats$rv_qa[1]  # RV for bringing effect to zero
-    rv_qa_alpha <- sens_result$sensitivity_stats$rv_qa_alpha[1]  # RV for bringing to insignificance
-    
-    # Extract partial R² values
-    partial_r2_t_x <- sens_result$sensitivity_stats$r2yd.x[1]
-    partial_r2_t_y <- sens_result$sensitivity_stats$r2yd.x[1]
-    
-    # Create result row
-    result <- data.frame(
-      Model = model_name,
-      Treatment_Effect = treatment_effect,
-      Standard_Error = std_error,
-      T_Value = t_value,
-      P_Value = p_value,
-      Partial_R2_Treatment = partial_r2_t_x,
-      RV_q1 = rv_qa,             # Robustness value for bringing effect to zero
-      RV_q1_alpha = rv_qa_alpha, # Robustness value for bringing to insignificance
-      Effect_Direction = ifelse(treatment_effect > 0, "Positive", "Negative"),
-      Significance = ifelse(p_value < 0.05, "Significant", "Not Significant"),
-      stringsAsFactors = FALSE
-    )
-    
-    # Add robustness ratio and assessment
-    typical_r2 <- 0.15  # A moderate benchmark partial R2
-    result$Robustness_Ratio <- result$RV_q1 / typical_r2
-    
-    result$Robustness_Assessment <- case_when(
-      result$Robustness_Ratio > 2 ~ "Very Strong",
-      result$Robustness_Ratio > 1 ~ "Strong",
-      result$Robustness_Ratio > 0.5 ~ "Moderate",
-      result$Robustness_Ratio > 0.25 ~ "Weak",
-      TRUE ~ "Very Weak"
-    )
-    
-    # Return both the result data and the sensemakr object
-    list(result = result, sens_object = sens_result)
-    
-  }, error = function(e) {
-    cat("Error analyzing", model_name, ":", e$message, "\n")
-    return(NULL)
-  })
-}
-
-# Analyze all models
-cat("Starting sensitivity analysis using sensemakr...\n")
-
-# Create list of all models, names, etc.
-models <- list(fit_sev_1, fit_sev_2, fit_sev_3, fit_sev_4,
-              fit_rec_1, fit_rec_2, fit_rec_3, fit_rec_4)
-
-model_names <- c("Subgroup 1 (0-2 years) - Severity",
-                "Subgroup 2 (3-5 years) - Severity",
-                "Subgroup 3 (6-9 years) - Severity",
-                "Subgroup 4 (10+ years) - Severity",
-                "Subgroup 1 (0-2 years) - Recovery",
-                "Subgroup 2 (3-5 years) - Recovery",
-                "Subgroup 3 (6-9 years) - Recovery",
-                "Subgroup 4 (10+ years) - Recovery")
-
+# set treatment variable
 treatment_var <- "history"
 
-cov_list <- list(
-  covariates_sev, covariates_sev, covariates_sev, covariates_sev,
-  covariates_rec, covariates_rec, covariates_rec, covariates_rec
-)
-
-benchmark_list <- list(
-  benchmark_covariates_sev, benchmark_covariates_sev, benchmark_covariates_sev, benchmark_covariates_sev,
-  benchmark_covariates_rec, benchmark_covariates_rec, benchmark_covariates_rec, benchmark_covariates_rec
-)
-
-# Run analysis for each model and collect results
-all_results <- list()
-all_sens_objects <- list()
-
-for (i in 1:length(models)) {
-  result <- analyze_one_model_sensemakr(
-    models[[i]], 
-    model_names[i], 
-    treatment_var, 
-    cov_list[[i]], 
-    benchmark_list[[i]]
+# get benchmark covariates based on covariates used in each model
+get_model_covariates <- function(model, treatment_var = "history", 
+                                exclude_treatment = TRUE, include_details = FALSE) {
+  # Check if model is NULL
+  if (is.null(model)) {
+    cat("Error: Model is NULL\n")
+    return(NULL)
+  }
+  
+  # Extract coefficient names (exclude intercept)
+  coef_names <- names(coef(model))
+  coef_names <- setdiff(coef_names, "(Intercept)")
+  
+  # Exclude treatment variable if requested
+  if (exclude_treatment && treatment_var %in% coef_names) {
+    coef_names <- setdiff(coef_names, treatment_var)
+  }
+  
+  # If no details requested, just return the covariate names
+  if (!include_details) {
+    return(coef_names)
+  }
+  
+  # Get model summary for detailed information
+  model_summary <- summary(model)
+  coef_table <- coef(model_summary)
+  
+  # Extract detailed information for each covariate
+  covariate_details <- list(
+    names = coef_names,
+    coefficients = coef(model)[coef_names],
+    p_values = coef_table[coef_names, "Pr(>|t|)"],
+    t_values = coef_table[coef_names, "t value"],
+    std_errors = coef_table[coef_names, "Std. Error"]
   )
   
-  if (!is.null(result)) {
-    all_results[[i]] <- result$result
-    all_sens_objects[[i]] <- result$sens_object
-    names(all_sens_objects)[i] <- model_names[i]
+  # Try to calculate VIF values if possible
+  tryCatch({
+    if (requireNamespace("car", quietly = TRUE)) {
+      vif_values <- car::vif(model)
+      covariate_details$vif <- vif_values[names(vif_values) %in% coef_names]
+    }
+  }, error = function(e) {
+    cat("Note: Could not calculate VIF values:", e$message, "\n")
+  })
+  
+  # Sort covariates by significance (absolute t-value)
+  if (length(coef_names) > 0) {
+    importance_order <- order(abs(coef_table[coef_names, "t value"]), decreasing = TRUE)
+    covariate_details$by_importance <- coef_names[importance_order]
+  }
+  
+  return(covariate_details)
+}
+
+# Create a list of all models
+all_models <- list(
+  "Subgroup 1 (0-2 years) - Severity" = fit_sev_1,
+  "Subgroup 2 (3-5 years) - Severity" = fit_sev_2,
+  "Subgroup 3 (6-9 years) - Severity" = fit_sev_3, 
+  "Subgroup 4 (10+ years) - Severity" = fit_sev_4,
+  "Subgroup 1 (0-2 years) - Recovery" = fit_rec_1,
+  "Subgroup 2 (3-5 years) - Recovery" = fit_rec_2,
+  "Subgroup 3 (6-9 years) - Recovery" = fit_rec_3,
+  "Subgroup 4 (10+ years) - Recovery" = fit_rec_4
+)
+
+# Get covariates for each model
+all_covariates <- lapply(names(all_models), function(model_name) {
+  model <- all_models[[model_name]]
+  if (!is.null(model)) {
+    covs <- get_model_covariates(model)
+    cat(model_name, "covariates:", paste(covs, collapse=", "), "\n")
+    return(covs)
   } else {
-    all_results[[i]] <- NULL
-    all_sens_objects[[i]] <- NULL
+    cat(model_name, "is NULL\n")
+    return(NULL)
+  }
+})
+names(all_covariates) <- names(all_models)
+
+
+# Use the covariates for sensitivity analysis
+all_sens_results <- list()  # Initialize list to store all sensitivity results
+
+for (model_name in names(all_models)) {
+  model <- all_models[[model_name]]
+  covs <- all_covariates[[model_name]]
+  
+  if (!is.null(model) && !is.null(covs) && length(covs) > 0) {
+    cat("\nRunning sensitivity analysis for", model_name, "\n")
+    
+    # Run the sensitivity analysis with model-specific covariates
+    sens_result <- tryCatch({
+      sensemakr(
+        model = model,
+        treatment = treatment_var,
+        benchmark_covariates = covs,
+        q = 1,
+        alpha = 0.05
+      )
+    }, error = function(e) {
+      cat("Error in sensitivity analysis:", e$message, "\n")
+      NULL
+    })
+    
+    # Store the result in the list (even if NULL)
+    all_sens_results[[model_name]] <- sens_result
+    
+    # Process or save the individual results as needed 
+    if (!is.null(sens_result)) {
+      # Print sensitivity analysis results
+      cat("Sensitivity analysis result for", model_name, ":\n")
+      print(sens_result)
+      
+      # Optionally save individual result to a file
+      output_file <- paste0(result_dir, "sensitivity_analysis_", gsub(" ", "_", model_name), ".RDS")
+      saveRDS(sens_result, output_file)
+      cat("Saved individual sensitivity analysis result to", output_file, "\n")
+    } else {
+      cat("No valid sensitivity analysis result for", model_name, "\n")
+    }  
   }
 }
 
-# Combine all non-null results
-valid_results <- all_results[!sapply(all_results, is.null)]
-valid_sens_objects <- all_sens_objects[!sapply(all_sens_objects, is.null)]
+all_sens_results
 
-if (length(valid_results) > 0) {
-  combined_results <- do.call(rbind, valid_results)
-  
-  # Save full results
-  write.csv(combined_results, paste0(result_dir, "sensitivity_analysis_sensemakr.csv"), row.names = FALSE)
-  
-  # Create interpretable summary
-  interpretable_summary <- combined_results %>%
-    select(Model, Treatment_Effect, P_Value, Partial_R2_Treatment, RV_q1, Robustness_Assessment) %>%
-    mutate(
-      Effect_Size = round(Treatment_Effect, 2),
-      P_Value = round(P_Value, 4),
-      Partial_R2 = round(Partial_R2_Treatment, 3),
-      Robustness_Value = round(RV_q1, 3)
-    ) %>%
-    select(Model, Effect_Size, P_Value, Partial_R2, Robustness_Value, Robustness_Assessment)
-  
-  # Save interpretable summary
-  write.csv(interpretable_summary, paste0(result_dir, "sensitivity_analysis_interpretable_sensemakr.csv"), row.names = FALSE)
-  
-  # Display results
-  cat("\nSensitivity Analysis Results:\n")
-  print(interpretable_summary)
-  
-  cat("\nSensitivity analysis complete. Results saved to:",
-      paste0(result_dir, "sensitivity_analysis_sensemakr.csv"), "and",
-      paste0(result_dir, "sensitivity_analysis_interpretable_sensemakr.csv"), "\n")
-  
-  # Create and save contour plots for each model
-  cat("\nGenerating contour plots for each model...\n")
-  
-  for (i in seq_along(valid_sens_objects)) {
-    model_name <- names(valid_sens_objects)[i]
-    sens_obj <- valid_sens_objects[[i]]
-    
-    # Clean model name for file naming
-    clean_name <- gsub(" |\\(|\\)|\\+|-", "_", model_name)
-    
-    # Create plot
-    plot_file <- paste0(result_dir, "contour_plot_", clean_name, ".png")
-    
-    # Generate and save contour plot
-    png(plot_file, width = 8, height = 6, units = "in", res = 300)
-    plot(sens_obj, 
-         type = "contour", 
-         main = paste("Sensitivity Analysis for", model_name),
-         xlab = "Partial R² of confounder(s) with treatment",
-         ylab = "Partial R² of confounder(s) with outcome")
-    dev.off()
-    
-    cat("Saved contour plot for", model_name, "to", plot_file, "\n")
-    
-    # Generate and save extreme scenarios plot
-    plot_file2 <- paste0(result_dir, "extreme_scenarios_", clean_name, ".png")
-    
-    png(plot_file2, width = 8, height = 6, units = "in", res = 300)
-    plot(sens_obj, 
-         type = "extreme", 
-         main = paste("Extreme Scenarios for", model_name))
-    dev.off()
-    
-    cat("Saved extreme scenarios plot for", model_name, "to", plot_file2, "\n")
-  }
-  
-  # Generate combined plots for severity and recovery models
-  # Group objects by severity and recovery
-  severity_objects <- valid_sens_objects[grep("Severity", names(valid_sens_objects))]
-  recovery_objects <- valid_sens_objects[grep("Recovery", names(valid_sens_objects))]
-  
-  # Create comparison tables
-  if (length(severity_objects) > 0) {
-    severity_table <- ovb_bounds(severity_objects)
-    write.csv(severity_table, paste0(result_dir, "sensitivity_bounds_severity.csv"), row.names = TRUE)
-  }
-  
-  if (length(recovery_objects) > 0) {
-    recovery_table <- ovb_bounds(recovery_objects)
-    write.csv(recovery_table, paste0(result_dir, "sensitivity_bounds_recovery.csv"), row.names = TRUE)
-  }
-  
-} else {
-  cat("\nNo valid sensitivity analysis results were generated.\n")
-}
+#  access all models stats
+sev1_stats <- as.data.frame(all_sens_results[["Subgroup 1 (0-2 years) - Severity"]]$sensitivity_stats)
+sev2_stats <- as.data.frame(all_sens_results[["Subgroup 2 (3-5 years) - Severity"]]$sensitivity_stats)
+sev3_stats <- as.data.frame(all_sens_results[["Subgroup 3 (6-9 years) - Severity"]]$sensitivity_stats)
+sev4_stats <- as.data.frame(all_sens_results[["Subgroup 4 (10+ years) - Severity"]]$sensitivity_stats)
+rec1_stats <- as.data.frame(all_sens_results[["Subgroup 1 (0-2 years) - Recovery"]]$sensitivity_stats)
+rec2_stats <- as.data.frame(all_sens_results[["Subgroup 2 (3-5 years) - Recovery"]]$sensitivity_stats)
+rec3_stats <- as.data.frame(all_sens_results[["Subgroup 3 (6-9 years) - Recovery"]]$sensitivity_stats)
+rec4_stats <- as.data.frame(all_sens_results[["Subgroup 4 (10+ years) - Recovery"]]$sensitivity_stats)
+# Combine all stats into a single data frame
+all_stats <- rbind(
+  sev1_stats %>% mutate(Subgroup = "0-2 years", Response = "Severity"),
+  sev2_stats %>% mutate(Subgroup = "3-5 years", Response = "Severity"),
+  sev3_stats %>% mutate(Subgroup = "6-9 years", Response = "Severity"),
+  sev4_stats %>% mutate(Subgroup = "10+ years", Response = "Severity"),
+  rec1_stats %>% mutate(Subgroup = "0-2 years", Response = "Recovery"),
+  rec2_stats %>% mutate(Subgroup = "3-5 years", Response = "Recovery"),
+  rec3_stats %>% mutate(Subgroup = "6-9 years", Response = "Recovery"),
+  rec4_stats %>% mutate(Subgroup = "10+ years", Response = "Recovery")
+  )  %>% relocate(
+    Subgroup,
+    Response,
+    .before = "treatment")
 
-# Save the sensitivity objects for later use
-if (length(valid_sens_objects) > 0) {
-  saveRDS(valid_sens_objects, paste0(result_dir, "sensitivity_objects.RDS"))
-  cat("\nSensitivity objects saved to:", paste0(result_dir, "sensitivity_objects.RDS"), "\n")
-}
-
-cat("\nSensitivity analysis complete.\n")
+# Save all stats to a CSV file
+output_stats_file <- file.path(result_dir, "sensitivity_analysis_stats.csv")
+write.csv(all_stats, output_stats_file, row.names = FALSE)

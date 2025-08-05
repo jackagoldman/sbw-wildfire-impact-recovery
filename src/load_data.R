@@ -95,6 +95,11 @@ history_gt90 <- history_gt90 %>%
   rename(Time_Since_Defol = tsd) %>% 
   rename(Cumulative_Years_Defol = years_defol)
 
+# calculate total area (pixel size 30 x 30m - 900 x total pixels / 10000 to get hectares)
+history_gt90 <- history_gt90 %>% 
+  mutate(fire_area = (total_pixels * 900) / 10000)
+
+
 
 ###############################################
 #set windows of opp based on fleming et al 2002
