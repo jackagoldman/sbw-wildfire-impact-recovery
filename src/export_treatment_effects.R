@@ -1,3 +1,28 @@
+#check and set working directory
+# Function to set appropriate path based on working directory
+set_appropriate_path <- function() {
+  current_wd <- getwd()
+  cat("Current working directory:", current_wd, "\n")
+  
+  # Check if working directory contains '/goldma34/'
+  if (grepl("/goldma34/", current_wd)) {
+    base_path <- "/home/goldma34/sbw-wildfire-impact-recovery/"
+    cat("Using server path:", base_path, "\n")
+  } else {
+    # Use current working directory as base
+    base_path <- file.path(getwd())
+    cat("Using local path:", base_path, "\n")
+  }
+  
+  return(base_path)
+}
+
+# Set the base path
+base_path <- set_appropriate_path()
+
+
+
+
 #' Export Treatment Effect Results to CSV
 #'
 #' This function extracts treatment effect estimates, confidence intervals, and p-values
@@ -14,7 +39,7 @@
 #' names <- c("0-2 years", "3-5 years", "6-9 years", "10+ years")
 #' export_treatment_effects(sev_models, names, "Severity")
 export_treatment_effects <- function(model_list, model_names, response_type,
-                                   output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/") {
+                                   output_dir = file.path(base_path, "results/subgroup/")) {
   
   # Load required libraries
   require(dplyr)
@@ -99,7 +124,7 @@ export_treatment_effects <- function(model_list, model_names, response_type,
 #' This function loads all the subgroup models and exports their treatment effects to CSV files.
 export_all_treatment_effects <- function() {
   # Result directory
-  result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/"
+  result_dir <- file.path(base_path, "results/subgroup/")
   
   # Function to safely read RDS files
   safe_read_rds <- function(file_path) {
@@ -180,7 +205,7 @@ if (interactive()) {
 #' @param output_dir Directory to save CSV file
 #' @return Data frame with compiled treatment effect results
 export_intermediate_treatment_effects <- function(
-  output_dir = "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/") {
+  output_dir = file.path(base_path, "results/subgroup/")) {
   
   # Load required libraries
   require(dplyr)
@@ -193,8 +218,8 @@ export_intermediate_treatment_effects <- function(
   all_effects <- data.frame()
   
   # Define file paths
-  severity_model_file <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_intermediate_severity.RDS"
-  recovery_model_file <- "/home/goldma34/sbw-wildfire-impact-recovery/results/subgroup/fit_model_intermediate_recovery.RDS"
+  severity_model_file <- file.path(base_path, "results/subgroup/fit_model_intermediate_severity.RDS")
+  recovery_model_file <- file.path(base_path, "results/subgroup/fit_model_intermediate_recovery.RDS")
   
   # Function to process a model and add its effects to the results
   process_model <- function(model_file, response_type, subgroup_name) {

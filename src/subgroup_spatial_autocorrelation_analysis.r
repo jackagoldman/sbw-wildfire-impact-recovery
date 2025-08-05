@@ -49,6 +49,24 @@ source(file.path(base_path, "/src/utils.R"))
 # Load your data 
 source(file.path(base_path, "/src/load_data.R"))
 
+# Check if data is loaded
+if (!exists("hist_gt90_2_2")) {
+  stop("Data not loaded. Make sure hist_gt90_2_2 exists.")
+}
+
+#rename hist_gt90_2_2 to intermediate
+intermediate <- hist_gt90_2_2
+
+# check window_opp_2 column and print the number of levels 
+if (!"window_opp_2" %in% colnames(intermediate)) {
+  stop("Column 'window_opp_2' not found in intermediate data.")
+} else {
+    window_opp_2_levels <- unique(intermediate$window_opp_2)
+    cat("Levels of 'window_opp_2':", paste(window_opp_2_levels, collapse = ", "), "\n")
+    
+}
+
+
 #load
 source(file.path(base_path, "/src/best_model_functions.R"))
 
@@ -142,7 +160,43 @@ spat.resid.sev_plot_wo1 <- ggplot() +
 
 spat.resid.sev_plot_wo1
 
-#
+
+# mem plot
+df.sev_1.1 <- data.frame(
+  x = defol_only_sev_1$x,
+  y = defol_only_sev_1$y,
+  mem_1 = window_opp_1_mems$first_mem,
+  id = seq_len(nrow(defol_only_sev_1))
+)
+
+
+# spatial plot of the mem
+ ggplot() +
+  geom_sf(data = ontario, fill = "navajowhite1", color = "black") +
+  geom_point(data = df.sev_1.1, aes(x = x, y = y, color = first_mem)) +
+  scale_color_gradient2(low = "#88CCEEA0", mid = "white", high = "#8B0000A0", midpoint = 0) +
+  labs(title = NULL, x = "Longitude", y = "Latitude", color = "Eigenvalues") +
+  theme(
+    legend.text = element_text(size = 30))+
+  theme_bw()+ 
+  ggspatial::annotation_scale()+
+  ggrepel::geom_label_repel(data = df.sev_1.1 , aes(x = x, y = y, label = id),
+                  box.padding   = 0.35, 
+                  point.padding = 0.5,
+                  segment.color = 'grey50') 
+
+
+# select 82 row from defol_only_sev_1
+defol_only_sev_1.82 <- defol_only_sev_1[82, ]
+
+# how many fires in history_9t90 have fire_area less than 40
+lt40 = history_gt90[history_gt90$fire_area < 40, ]
+print(lt40)
+
+
+head(history_gt90) 
+
+
 # Window of Opptunity 2 ==========================
 
 
@@ -330,6 +384,9 @@ moran_i <- moranNP.randtest(residuals(model_vif_removed), listw, nrepet = 999, a
 
 vario <- variogram(residuals(model_vif_removed) ~ 1, data = window_opp_4_mems_data)
 
+#identify when gamma begins to go down
+max_gamma_row4.2<- vario[which.max(vario$gamma), ]
+(max_gamma_row4.2$dist / 1000) # convert to km
 
 # Create a dataframe with residuals and coordinates
 df.sev_4 <- data.frame(
@@ -348,10 +405,71 @@ spat.resid.sev_plot_wo4 <- ggplot() +
 
 spat.resid.sev_plot_wo4
 
+# intermediate results for severity models =========================
+
+formula.sev <- rbr_w_offset ~host_pct + Cumulative_Years_Defol + isi_90 + 
+  dc_90 + dmc_90 + ffmc_90 + bui_90+ fwi_90 + mean_tri
+
+#get defol only from intermediate
+intermediate <- subset(intermediate, history == 1)
+nrow(intermediate)
+
+
+#dentify mems
+ window_opp_int_mems <- get_mems(intermediate)
+
+#get data
+window_opp_int_mems_data <- window_opp_int_mems$data_w_first_mem
+# get weights
+window_opp_int_weights <- window_opp_int_mems$weights
+# view the first MEM
+print(first_mem.int <- window_opp_int_mems$first_mem)
+
+# LM model
+window_opp_int_mod.1 <- lm_model(window_opp_int_mems_data, window_opp_int_weights, formula.sev, null_model = TRUE)
+
+# check moran's I - is it significantly different from 0?
+morans_i_int <-window_opp_int_mod.1$morans_i
+morans_i_int
+
+# check model summary
+mod.sum_sev_int <- summary(window_opp_int_mod.1$model)
+
+# check adj r-squared
+print(r2_int <- window_opp_int_mod.1$adj_r2_model)
+print(r2_int_null <-window_opp_int_mod.1$adj_r2_null)
+
+# whats the formula 
+eval(mod.sum_sev_int$call[[2]])
+
+# check variogram
+variogram_int <- window_opp_int_mod.1$vario
+plot(variogram_int, main = "Variogram of Residuals (Gaussian)")
+
+#identify when gamma begins to go down
+max_gamma_row_int<- variogram_int[which.max(variogram_int$gamma), ]
+(max_gamma_row_int$dist / 1000) # convert to km
+
+# Create a dataframe with residuals and coordinates
+df.sev_int <- data.frame(
+  x = intermediate$x,
+  y = intermediate$y,
+  residuals_lm_mem = residuals(window_opp_int_mod.1$model)
+)
+
+# Create a spatial plot of residuals with lm
+spat.resid.sev_plot_int <- ggplot() +
+  geom_sf(data = ontario, fill = "navajowhite1", color = "black") +
+  geom_point(data = df.sev_int, aes(x = x, y = y, color = residuals_lm_mem)) +
+  scale_color_gradient2(low = "#88CCEEA0", mid = "white", high = "#8B0000A0", midpoint = 0) +
+  labs(title = NULL, x = "Longitude", y = "Latitude", color = "Residuals") +
+  theme_bw()
+
+spat.resid.sev_plot_int
 
 
 
-
+############## Recovery Models =========================
 
 
 
