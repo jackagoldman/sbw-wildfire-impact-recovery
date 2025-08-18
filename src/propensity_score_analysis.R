@@ -10,8 +10,10 @@ library(cowplot)
 library(MatchIt)
 library(sensemakr)
 library(MuMIn)
+library(car)
 source("src/best_model_functions.R")
 source("src/utils.R")
+
 
 
 # Load your data 
@@ -22,7 +24,7 @@ source("src/load_data.R")  # Replace with actual script that loads hist_gt90_1
 ## Propensity score matching for full severity Data ---------------------------
 
 # Full matching on a probit PS
-m.out2 <- matchit(history ~  host_pct +isi_90 + dc_90+ dmc_90 + ffmc_90 + bui_90 + fwi_90 + mean_tri ,
+m.out2 <- matchit(history ~  host_pct +isi_90 + dc_90+ dmc_90 + ffmc_90 + bui_90 + fwi_90 + mean_tri + fire_area,
                   data = history_gt90, 
                   method = "nearest",
                   distance = "glm",
@@ -53,9 +55,8 @@ m.data.sf <- st_as_sf(m.data, coords = c("x", "y"), crs = 4326)
 
 ## Assess balance for severity ======================
 v <- data.frame(old = c("host_pct", "isi_90", "dc_90", 
-"dmc_90", "ffmc_90", "bui_90", "fwi_90", "mean_tri"),
-new = c("Host Species Percentage", "Intial Spread Index", "Drought Code", 
-        "Duff Moisture Code", "Fine Fuel Moisture Code", "Build Up Index", "Fire Weather Index", "Mean Terrain Ruggedness Index"))
+"dmc_90", "ffmc_90", "bui_90", "fwi_90", "mean_tri", "fire_area"),new = c("Host Species Percentage", "Intial Spread Index", "Drought Code", 
+        "Duff Moisture Code", "Fine Fuel Moisture Code", "Build Up Index", "Fire Weather Index", "Mean Terrain Ruggedness Index", "fire_area"))
 
 cobalt::love.plot(m.out2, stats = c("mean.diffs"), 
                   threshold = c(m = .25), 
@@ -69,8 +70,41 @@ cobalt::love.plot(m.out2, stats = c("mean.diffs"),
                   sample.names = c("Unmatched", "Matched"),
                   position = "top",
                   shapes = c("circle", "triangle"),
-                  colors = c("#FF8C00A0", "#8B0000A0"))
+                  colors = c("#FF8C00A0", "#8B0000A0"),
+                   guide = guide_legend(
+                   title = NULL,
+                   direction = "horizontal",
+                   title.position = "top",
+                   label.position = "bottom",
+                   label.hjust = 0.5,
+                   label.vjust = 1.5,
+                   keywidth = 1.5,
+                   keyheight = 3,
+                   default.unit = "cm",
+                   override.aes = list(size = 5),
+                   ncol = 2
+                 )) + 
+                 theme_bw() + 
+                 theme(legend.position = c(.75, .3),
+                       plot.title = element_blank(), 
+                       legend.box.background = element_rect(fill = "white", color = "black"), 
+                       legend.box.margin = margin(5, 5, 5, 5),
+                       legend.text = element_text(size = 14),
+                       legend.title = element_text(size = 16),
+                       axis.title.x = element_text(size = 16),
+                       axis.title.y = element_text(size = 16),
+                       axis.text.x = element_text(size = 14),
+                       axis.text.y = element_text(size = 14),
+                       panel.border = element_rect(color = "black", fill = NA, size = 1.5)
+                 )
 
+# save
+ggsave(
+  filename = "/Users/jgoldman/Work/PhD/sbw-fire-psm-project/sbw-wildfire-impact-recovery/plots/balance/fig_sev_balance.png",
+  plot = last_plot(),
+  width = 10, height = 5 * ceiling(length(v)/2), # adjust height based on number of plots
+  dpi = 300
+)
 
 host_plot <- cobalt::bal.plot(m.out2, 
                               var.name = "host_pct", 
@@ -180,6 +214,56 @@ sev.model.2 <- update(sev_mod.1, . ~ . - dmc_90 - bui_90)
 #check model summary
 print(sum_sev_2 <- summary(sev.model.2))
 
+#save model
+# Convert summary statistics to a data frame
+sev_model_stats <- function(model_summary) {
+  # Extract coefficient table
+  coef_table <- as.data.frame(model_summary$coefficients)
+  
+  # Add term names as a column
+  coef_table$term <- rownames(coef_table)
+  
+  # Rename columns for clarity
+  names(coef_table) <- c("estimate", "std_error", "t_value", "p_value", "term")
+  
+  # Reorder columns
+  coef_table <- coef_table[, c("term", "estimate", "std_error", "t_value", "p_value")]
+  
+  # Sort: intercept first, then by significance (p-value)
+  intercept_row <- coef_table[coef_table$term == "(Intercept)", ]
+  other_rows <- coef_table[coef_table$term != "(Intercept)", ]
+  other_rows <- other_rows[order(other_rows$p_value), ]
+  
+  # Combine rows back together
+  coef_table <- rbind(intercept_row, other_rows)
+  
+  # Add significance stars
+  coef_table$significance <- ""
+  coef_table$significance[coef_table$p_value < 0.05] <- "*"
+  coef_table$significance[coef_table$p_value < 0.01] <- "**"
+  coef_table$significance[coef_table$p_value < 0.001] <- "***"
+  
+    # Format numeric columns with scientific notation
+  coef_table$estimate <- formatC(coef_table$estimate, format = "e", digits = 4)
+  coef_table$std_error <- formatC(coef_table$std_error, format = "e", digits = 4)
+  coef_table$t_value <- formatC(coef_table$t_value, format = "e", digits = 4)
+  coef_table$p_value <- formatC(coef_table$p_value, format = "e", digits = 4)
+  
+  # Return the data frame
+  return(coef_table)
+}
+
+# Create the data frame from severity model summary
+sev_stats <- sev_model_stats(sum_sev_2)
+
+# Print the results
+print(sev_stats)
+
+# Save to CSV file
+write.csv(sev_stats,  "results/all_fires/severity_model_statistics.csv", 
+          row.names = FALSE)
+
+
 
 # avg_comparisons for treatment effect
 fit_att_sev <- as.data.frame(marginaleffects::avg_comparisons(sev.model.2,
@@ -284,7 +368,7 @@ plot(sev.sensitivity, type = "extreme")
 ## Propensity score matching for full recovery Data --------------------------
 
 # Full matching on a probit PS
-m.out.rec <- matchit(history ~  host_pct + rbr_w_offset + mean_temperature + sum_precipitation_mm + mean_tri,
+m.out.rec <- matchit(history ~  host_pct + rbr_w_offset + mean_temperature + sum_precipitation_mm + mean_tri + fire_area,
                      data = history_gt90,
                      method = "nearest",
                      distance = "glm",
@@ -312,9 +396,9 @@ m.data.rec.sf <- st_as_sf(m.data.rec, coords = c("x", "y"), crs = 4326)
 
 
 ## Assess balance for recovery ==============
-v.r <- data.frame(old = c("host_pct", "rbr_w_offset", "mean_temperature", "sum_precipitation_mm", "mean_tri"),
+v.r <- data.frame(old = c("host_pct", "rbr_w_offset", "mean_temperature", "sum_precipitation_mm", "mean_tri", "fire_area"),
                 new = c("Host Species Percentage", "burn severity", "post-fire mean temperature", 
-                        "post-fire total precipitation (mm)", "mean terrain ruggedness index (m)"))
+                        "post-fire total precipitation (mm)", "mean terrain ruggedness index (m)", "fire_area"))
 
 cobalt::love.plot(m.out.rec, stats = c("mean.diffs"), 
                   threshold = c(m = .25), 
@@ -328,7 +412,42 @@ cobalt::love.plot(m.out.rec, stats = c("mean.diffs"),
                   sample.names = c("Unmatched", "Matched"),
                   position = "top",
                   shapes = c("circle", "triangle"),
-                  colors = c("#FF8C00A0", "#8B0000A0"))
+                  colors = c("#FF8C00A0", "#8B0000A0"), 
+                   guide = guide_legend(
+                   title = NULL,
+                   direction = "horizontal",
+                   title.position = "top",
+                   label.position = "bottom",
+                   label.hjust = 0.5,
+                   label.vjust = 1.5,
+                   keywidth = 1.5,
+                   keyheight = 1.5,
+                   default.unit = "cm",
+                   override.aes = list(size = 5),
+                   ncol = 2
+                 )) + 
+                 theme_bw() + 
+                 theme(legend.position = c(.75, .3),
+                       plot.title = element_blank(), 
+                       legend.box.background = element_rect(fill = "white", color = "black"), 
+                       legend.box.margin = margin(5, 5, 5, 5),
+                       legend.key.size = unit(1.5, "cm"),
+                       legend.text = element_text(size = 14),
+                       legend.title = element_text(size = 16),
+                       axis.title.x = element_text(size = 16),
+                       axis.title.y = element_text(size = 16),
+                       axis.text.x = element_text(size = 14),
+                       axis.text.y = element_text(size = 14),
+                       panel.border = element_rect(color = "black", fill = NA, size = 1.5)
+                 )
+
+# save
+ggsave(
+  filename = "/Users/jgoldman/Work/PhD/sbw-fire-psm-project/sbw-wildfire-impact-recovery/plots/balance/fig_rec_balance.png",
+  plot = last_plot(),
+  width = 10, height = 5 * ceiling(length(v.r)/2), # adjust height based on number of plots
+  dpi = 300
+)                  
 
 
 host_plot <- cobalt::bal.plot(m.out.rec, 
@@ -411,7 +530,14 @@ vif(rec_mod.1)
 #check model summary
 print(sum_rec <- summary(rec_mod.1))
 
+# Create the data frame from severity model summary
+rec_stats <- sev_model_stats(sum_rec)
 
+# Print the results
+print(rec_stats)
+#save to csf ile
+write.csv(rec_stats, "results/all_fires/recovery_model_statistics.csv", 
+          row.names = FALSE)
 # avg_comparisons for treatment effect
 fit_att_rec <- as.data.frame(marginaleffects::avg_comparisons(rec_mod.1,
                                                           variables = "history",
