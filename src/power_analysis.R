@@ -174,3 +174,133 @@ min_detectable_effect_size <- function(model_fit, matched_data,
   }
 }
 
+### RUN POWER ANALYSIS
+
+library(tidyverse)
+
+#
+# Load your data 
+source(file.path(base_path, "/src/load_data.R"))
+
+# Source the file with function definitions
+source(file.path(base_path, "/src/best_model_functions.R"))
+
+#check and set working directory
+# Function to set appropriate path based on working directory
+set_appropriate_path <- function() {
+  current_wd <- getwd()
+  cat("Current working directory:", current_wd, "\n")
+  
+  # Check if working directory contains '/goldma34/'
+  if (grepl("/goldma34/", current_wd)) {
+    base_path <- "/home/goldma34/sbw-wildfire-impact-recovery/"
+    cat("Using server path:", base_path, "\n")
+  } else {
+    # Use current working directory as base
+    base_path <- file.path(getwd())
+    cat("Using local path:", base_path, "\n")
+  }
+  
+  return(base_path)
+}
+
+# Set the base path
+base_path <- set_appropriate_path()
+
+# read in all subgroup fits
+fit_sev_2 <- readRDS(paste0(base_path, "/results/subgroup/fit_model_subgroup2_severity.RDS"))
+fit_sev_3 <- readRDS(paste0(base_path, "/results/subgroup/fit_model_subgroup3_severity.RDS"))
+fit_rec_2 <- readRDS(paste0(base_path, "/results/subgroup/fit_model_subgroup2_recovery.RDS"))
+fit_rec_3 <- readRDS(paste0(base_path, "/results/subgroup/fit_model_subgroup3_recovery.RDS"))
+
+#intermediate
+fit_int_sev <- readRDS(paste0(base_path, "/results/subgroup/fit_model_intermediate_severity.RDS"))
+fit_int_rec <- readRDS(paste0(base_path, "/results/subgroup/fit_model_intermediate_recovery.RDS"))
+
+# read in best models
+best_model_sev_2 <- readRDS(paste0(base_path, "/results/subgroup/best_model_subgroup2_severity.RDS"))
+best_model_sev_3 <- readRDS(paste0(base_path, "/results/subgroup/best_model_subgroup3_severity.RDS"))
+best_model_rec_2 <- readRDS(paste0(base_path, "/results/subgroup/best_model_subgroup2_recovery.RDS"))
+best_model_rec_3 <- readRDS(paste0(base_path, "/results/subgroup/best_model_subgroup3_recovery.RDS"))
+#intermediate best models
+best_model_int_sev <- readRDS(paste0(base_path, "/results/subgroup/best_model_intermediate_severity.RDS"))
+best_model_int_rec <- readRDS(paste0(base_path, "/results/subgroup/best_model_intermediate_recovery.RDS"))
+
+#
+m.data.sev_2 <- match_data(best_model_sev_2)
+m.data.sev_3 <- match_data(best_model_sev_3)
+m.data.int_sev <- match_data(best_model_int_sev)
+m.data.rec_2 <- match_data(best_model_rec_2)
+m.data.rec_3 <- match_data(best_model_rec_3)
+m.data.int_rec <- match_data(best_model_int_rec)
+
+# Run analysis with sample sizes from 20 to 300
+result <- min_detectable_effect_size(
+  fit_sev_2, 
+  m.data.sev_2,
+  sample_sizes = seq(20, 300, by = 10),
+  plot_filename = file.path(base_path,"/plots/power_analysis/subgroup2_severity_mdes.png"
+))
+
+# Print the results
+print(result$plot_cohens_d)
+print(result$plot_raw)
+
+# Get minimum detectable effect size for a specific power level (e.g., 90%)
+higher_power_mdes <- min_detectable_effect_size(
+  fit_sev_2, 
+  m.data.sev_2,
+  power_target = 0.8
+)
+
+alpha = 0.05
+power = 0.8
+
+ss <- pwr.t.test(d = higher_power_mdes$observed_cohens_d, sig.level = alpha, power = power, type = "two.sample", alternative = "two.sided")
+
+cat("\nWith 90% power, minimum detectable effect size (Cohen's d):", 
+    round(higher_power_mdes$min_detectable_d, 3), "\n")
+cat("With 90% power, minimum detectable effect size (raw units):", 
+    round(higher_power_mdes$min_detectable_raw, 3), "\n")
+
+
+
+# Run analysis with sample sizes from 20 to 300
+result3 <- min_detectable_effect_size(
+  fit_sev_3, 
+  m.data.sev_3,
+  sample_sizes = seq(20, 300, by = 10),
+  plot_filename = file.path(base_path,"/plots/power_analysis/subgroup3_severity_mdes.png"
+))
+
+
+# Run analysis with sample sizes from 20 to 300
+result3 <- min_detectable_effect_size(
+  fit_int_sev, 
+  m.data.int_sev,
+  sample_sizes = seq(20, 300, by = 10),
+  plot_filename = file.path(base_path,"/plots/power_analysis/subgroup3_severity_mdes.png"
+))
+
+
+# Get minimum detectable effect size for a specific power level (e.g., 90%)
+mdes.r2 <- min_detectable_effect_size(
+  fit_rec_2, 
+  m.data.rec_2,
+  power_target = 0.8
+)
+
+
+# Get minimum detectable effect size for a specific power level (e.g., 90%)
+mdes.r3 <- min_detectable_effect_size(
+  fit_rec_3, 
+  m.data.rec_3,
+  power_target = 0.8
+)
+
+# Get minimum detectable effect size for a specific power level (e.g., 90%)
+mdes.rint <- min_detectable_effect_size(
+  fit_int_rec, 
+  m.data.int_rec,
+  power_target = 0.8
+)
