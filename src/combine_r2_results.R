@@ -1,8 +1,30 @@
 # Load required libraries
 library(dplyr)
 
+#check and set working directory
+# Function to set appropriate path based on working directory
+set_appropriate_path <- function() {
+  current_wd <- getwd()
+  cat("Current working directory:", current_wd, "\n")
+  
+  # Check if working directory contains '/goldma34/'
+  if (grepl("/goldma34/", current_wd)) {
+    base_path <- "/home/goldma34/sbw-wildfire-impact-recovery/"
+    cat("Using server path:", base_path, "\n")
+  } else {
+    # Use current working directory as base
+    base_path <- file.path(getwd())
+    cat("Using local path:", base_path, "\n")
+  }
+  
+  return(base_path)
+}
+
+# Set the base path
+base_path <- set_appropriate_path()
+
 # Define results directory
-result_dir <- "/home/goldma34/sbw-wildfire-impact-recovery/results/"
+result_dir <- file.path(base_path, "results/subgroup/")
 
 # Function to safely read RDS files
 safe_read_rds <- function(file_path) {
