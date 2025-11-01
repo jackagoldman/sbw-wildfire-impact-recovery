@@ -1,0 +1,9 @@
+"Model","R2_Marginal","R2_Conditional","Model_Type","Time_Period"
+"Subgroup 1 (0-2 years) - Severity",0.159,0.159,"Severity","0-2"
+"Subgroup 2 (3-5 years) - Severity",0.1055,0.1055,"Severity","3-5"
+"Subgroup 3 (6-9 years) - Severity",0.1687,0.1687,"Severity","6-9"
+"Subgroup 4 (10+ years) - Severity",0.1738,0.1738,"Severity",NA
+"Subgroup 1 (0-2 years) - Recovery",0.1714,0.1714,"Recovery","0-2"
+"Subgroup 2 (3-5 years) - Recovery",0.1753,0.1753,"Recovery","3-5"
+"Subgroup 3 (6-9 years) - Recovery",0.2832,0.2832,"Recovery","6-9"
+"Subgroup 4 (10+ years) - Recovery",0.2422,0.2422,"Recovery",NA
