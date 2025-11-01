@@ -226,3 +226,4 @@ print(sample_sizes)
 # save the updated sample sizes to CSV
 write.csv(sample_sizes, file.path(base_path, "results/subgroup/sample_sizes_subgroups_with_history.csv"), 
           row.names = FALSE)
+
