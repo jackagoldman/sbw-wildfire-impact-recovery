@@ -207,6 +207,13 @@ sev_mod.1 <-lm(formula.sev, weights = m.data.2$weights, data = m.data.2 )
 #vif
 vif(sev_mod.1)
 
+# get vif table
+vif_table <- data.frame(
+  feature = names(vif(sev_mod.1)), # remove intercept 
+  VIF = as.numeric(vif(sev_mod.1))
+)
+
+write.csv(vif_table, "results/all_fires/severity_model_vif.csv", row.names = FALSE)
 
 #update model 
 sev.model.2 <- update(sev_mod.1, . ~ . - dmc_90 - bui_90)
@@ -263,6 +270,7 @@ print(sev_stats)
 write.csv(sev_stats,  "results/all_fires/severity_model_statistics.csv", 
           row.names = FALSE)
 
+# get r-squared
 
 
 # avg_comparisons for treatment effect
@@ -525,6 +533,15 @@ rec_mod.1 <-lm(formula.rec, weights = m.data.rec2$weights, data = m.data.rec2 )
 
 #vif
 vif(rec_mod.1)
+
+#
+# get vif table
+vif_table <- data.frame(
+  feature = names(vif(rec_mod.1)), # remove intercept 
+  VIF = as.numeric(vif(rec_mod.1))
+)
+
+write.csv(vif_table, "results/all_fires/recovery_model_vif.csv", row.names = FALSE)
 
 
 #check model summary
