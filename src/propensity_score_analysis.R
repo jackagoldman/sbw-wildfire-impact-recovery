@@ -221,6 +221,9 @@ sev.model.2 <- update(sev_mod.1, . ~ . - dmc_90 - bui_90)
 #check model summary
 print(sum_sev_2 <- summary(sev.model.2))
 
+# save model to .rds
+saveRDS(sev.model.2, "results/all_fires/severity_modelfit_final.rds")
+
 #save model
 # Convert summary statistics to a data frame
 sev_model_stats <- function(model_summary) {
